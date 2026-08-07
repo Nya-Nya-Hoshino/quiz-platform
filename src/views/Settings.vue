@@ -89,7 +89,7 @@ function fillDemo(): void {
 
     <div class="mt-4 rounded-sm border border-gray-200 bg-white p-4 text-xs leading-6 text-gray-500">
       <p class="font-medium text-gray-700">学科 Prompt 说明</p>
-      <p>当前题库为日语（N5/N4），AI 使用「日语教师」Prompt：讲解知识点 → 选项分析 → JLPT 陷阱 → 记忆方法。</p>
+      <p>AI 按题目学科自动切换 Prompt：日语题库使用「日语教师」Prompt（讲解知识点 → 选项分析 → JLPT 陷阱 → 记忆方法）；也可扩展编程、通用等学科。</p>
       <p>可在 <code class="rounded bg-gray-100 px-1">src/prompts/index.ts</code> 中添加其他学科（如编程、数学）的 Prompt。</p>
     </div>
   </div>
