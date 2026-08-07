@@ -6,6 +6,7 @@
 import { computed, ref } from 'vue'
 import { NDrawer, NDrawerContent, NSkeleton, NAlert } from 'naive-ui'
 import { askAI, isAIConfigured } from '../services/ai'
+import { renderMarkdown } from '../utils/markdown'
 
 const props = defineProps<{
   /** 侧边栏开关 */
@@ -148,9 +149,11 @@ function handleShowChange(v: boolean): void {
             <n-skeleton text :repeat="4" />
             <n-skeleton text :repeat="3" />
           </div>
-          <div v-else-if="response" class="whitespace-pre-wrap text-sm leading-6 text-gray-800">
-            {{ response }}
-          </div>
+          <div
+            v-else-if="response"
+            class="md-body text-sm text-gray-800"
+            v-html="renderMarkdown(response)"
+          />
           <p v-else class="text-sm text-gray-400">点击上方按钮或输入问题，AI 将根据学科 Prompt 提供教学解析。</p>
         </div>
       </div>

@@ -60,6 +60,18 @@
         </div>
       </section>
 
+      <section>
+        <h2 class="mb-2 flex items-center gap-2 text-base font-semibold text-gray-900">
+          <span class="flex h-6 w-6 items-center justify-center rounded bg-blue-100 text-xs">✨</span>
+          近期更新
+        </h2>
+        <ul class="list-disc space-y-1 pl-5 text-gray-600">
+          <li><b>热更新</b>：AI 解析/反馈支持 Markdown 可视化渲染（标题、加粗、表格、代码块、链接），阅读体验大幅提升</li>
+          <li>新增 N3 自主练习 第 5-8 套（含读解文章组与 ★ 排序题）</li>
+          <li>新增站点公告栏与错题反馈悬浮窗</li>
+        </ul>
+      </section>
+
       <section class="rounded-md bg-gray-50 p-4 text-xs text-gray-400">
         <p>发布：2026 年 8 月 · 后续功能与公告将在此更新</p>
       </section>

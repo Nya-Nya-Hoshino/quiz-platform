@@ -4,6 +4,7 @@
  */
 import { computed } from 'vue'
 import type { Question } from '../types/question'
+import { renderMarkdown } from '../utils/markdown'
 
 const props = defineProps<{
   question: Question
@@ -88,12 +89,15 @@ const userAnswerText = computed(() => {
         <p class="text-sm font-medium text-gray-900">{{ answerText }}</p>
       </div>
 
-      <!-- 解析 -->
+      <!-- 解析（AI 解析为 markdown，可视化渲染） -->
       <div>
         <p class="mb-1 text-xs font-medium uppercase tracking-wide text-gray-500">解析</p>
-        <p class="text-sm leading-6 text-gray-700">
-          {{ analysisText ?? question.explanation ?? '暂无解析内容。' }}
-        </p>
+        <div
+          v-if="analysisText ?? question.explanation"
+          class="md-body text-sm text-gray-700"
+          v-html="renderMarkdown(analysisText ?? question.explanation ?? '')"
+        />
+        <p v-else class="text-sm text-gray-700">暂无解析内容。</p>
       </div>
     </div>
   </div>
