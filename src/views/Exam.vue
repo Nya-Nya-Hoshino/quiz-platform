@@ -36,7 +36,11 @@ onMounted(async () => {
     const hadSaved = hasSavedProgress('exam', id) // start 前检测（直接读 localStorage）
     try {
       await examStore.startExam(id)
-      if (hadSaved) restored.value = true
+      if (hadSaved) {
+      restored.value = true
+      // 提示仅显示 1.2s 后自动隐藏
+      window.setTimeout(() => (restored.value = false), 1200)
+    }
     } catch {
       router.replace('/')
     }
