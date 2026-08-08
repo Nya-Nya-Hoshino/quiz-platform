@@ -89,7 +89,7 @@ function doSubmit(): void {
     // 答对自动跳转下一题（短暂停留展示正确反馈）；答错停留查看解析
     if (fb.isCorrect && practice.currentIndex < practice.total - 1) {
       window.clearTimeout(autoJumpTimer)
-      autoJumpTimer = window.setTimeout(() => goNext(), 900)
+      autoJumpTimer = window.setTimeout(() => goNext(), 450)
     }
   } catch (e) {
     /* 未作答提示由按钮 disabled 保证 */
