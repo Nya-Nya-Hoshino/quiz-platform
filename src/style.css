@@ -207,7 +207,9 @@ body {
 }
 @font-face {
   font-family: "QuizSerif";
-  src: local("SimSun"), local("Noto Serif CJK SC"), local("Source Han Serif SC"), local("Yu Mincho"), local("MS Mincho"), serif;
+  /* 汉字统一用明朝体（Yu Mincho 优先，MS Mincho/Noto Serif CJK JP 兜底） */
+  src: local("Yu Mincho"), local("YuMincho"), local("Hiragino Mincho ProN"),
+    local("MS Mincho"), local("Noto Serif CJK JP"), local("Source Han Serif JP"), serif;
   unicode-range: U+2E80-2EFF, U+3000-303F, U+3400-4DBF, U+4E00-9FFF;
 }
 .font-mincho,
