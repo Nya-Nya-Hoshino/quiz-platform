@@ -8,6 +8,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { usePracticeStore } from '../stores/practice'
 import { useAIExplainStore } from '../stores/aiExplain'
 import { findQuestion, findReadingGroup } from '../utils/parser'
+import { hasProgress as hasSavedProgress } from '../utils/progress'
 import ExamProgress from '../components/ExamProgress.vue'
 import QuestionCard from '../components/QuestionCard.vue'
 import AnswerPanel from '../components/AnswerPanel.vue'
@@ -24,16 +25,35 @@ const aiContext = ref('')
 const aiIsWrong = ref(false)
 const lastFeedback = ref<{ isCorrect: boolean } | null>(null)
 
+/** 是否有可恢复的存档（进入时检测，提示用户） */
+const restored = ref(false)
+const restarting = ref(false)
+
 onMounted(async () => {
   const id = route.params.id as string
   if (!practice.exam || practice.exam.id !== id) {
+    const hadSaved = hasSavedProgress('practice', id) // start 前检测（直接读 localStorage）
     try {
       await practice.startPractice(id, false)
+      if (hadSaved) restored.value = true
     } catch {
       router.replace('/')
     }
   }
 })
+
+/** 重新开始：丢弃存档并重新加载 */
+async function restartPractice(): Promise<void> {
+  restarting.value = true
+  practice.discardProgress()
+  try {
+    const id = route.params.id as string
+    await practice.startPractice(id, false)
+    restored.value = false
+  } finally {
+    restarting.value = false
+  }
+}
 
 const currentQuestion = computed(() => {
   if (!practice.exam || !practice.currentId) return null
@@ -153,6 +173,25 @@ function finishPractice(): void {
         </span>
       </div>
     </div>
+
+    <!-- 恢复进度提示 -->
+    <div
+      v-if="restored && !restarting"
+      class="mb-4 flex items-center justify-between rounded-sm border border-amber-200 bg-amber-50 px-4 py-2.5"
+    >
+      <p class="text-sm text-amber-800">
+        <b>已恢复上次进度</b>
+        · 上次做到第 {{ practice.currentIndex + 1 }} / {{ practice.total }} 题
+      </p>
+      <button
+        type="button"
+        class="flex-shrink-0 rounded-sm border border-amber-300 px-2.5 py-1 text-xs text-amber-700 hover:bg-amber-100"
+        @click="restartPractice"
+      >
+        重新开始
+      </button>
+    </div>
+    <div v-else-if="restarting" class="mb-4 text-xs text-gray-400">正在重新加载…</div>
 
     <!-- 进度 -->
     <div class="mb-4 rounded-sm border border-gray-200 bg-white p-4">

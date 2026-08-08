@@ -68,6 +68,10 @@
         <ul class="space-y-2 pl-1">
           <li class="flex items-start gap-2">
             <span class="mt-0.5 flex-shrink-0 rounded-sm bg-blue-100 px-1.5 py-0.5 text-xs text-blue-700">08-08</span>
+            <span class="text-gray-600"><b>进度保存</b>：练习/考试中途关闭页面后，再次打开自动恢复上次进度（含已答题目与位置），可一键重新开始</span>
+          </li>
+          <li class="flex items-start gap-2">
+            <span class="mt-0.5 flex-shrink-0 rounded-sm bg-blue-100 px-1.5 py-0.5 text-xs text-blue-700">08-08</span>
             <span class="text-gray-600"><b>交互体验优化</b>：加载动画与路由过渡、答对自动跳转下一题、错题本升级（自由添加 / 单条删除 / 清空）、AI 反馈与路由返回体验改进</span>
           </li>
           <li class="flex items-start gap-2">

@@ -5,6 +5,7 @@
  * 特点：作答过程中不显示答案，全部完成后进入 Result 页。
  */
 import { defineStore } from 'pinia'
+import { clearProgress, hasProgress, loadProgress, saveProgress } from '../utils/progress'
 import { computed, ref } from 'vue'
 import type { AnswerRecord, Exam, ExamResult, QuestionRef, ResultItem, UserAnswerValue } from '../types/exam'
 import { fetchExam } from '../services/api'
@@ -42,6 +43,8 @@ export const useExamStore = defineStore('exam', () => {
       startTime.value = Date.now()
       finished.value = false
       result.value = null
+      // 尝试恢复上次考试进度
+      restoreFromSaved(e.id)
     } catch (e) {
       error.value = (e as Error).message
       throw e
@@ -73,6 +76,46 @@ export const useExamStore = defineStore('exam', () => {
     }
   }
 
+  /* ===== 进度持久化 ===== */
+
+  /** 保存当前考试进度（含已用时长） */
+  function saveProgressNow(): void {
+    if (!exam.value) return
+    saveProgress('exam', exam.value.id, {
+      currentIndex: currentIndex.value,
+      answers: answers.value,
+      elapsed: elapsedSeconds(),
+    })
+  }
+
+  /** 是否存在存档 */
+  function hasSavedProgress(): boolean {
+    return exam.value ? hasProgress('exam', exam.value.id) : false
+  }
+
+  /** 尝试恢复存档，返回是否恢复成功 */
+  function restoreFromSaved(examId: string): boolean {
+    const saved = loadProgress<{
+      currentIndex: number
+      answers: Record<string, AnswerRecord>
+      elapsed: number
+    }>('exam', examId)
+    if (!saved) return false
+    if (saved.payload.currentIndex < 0 || saved.payload.currentIndex >= refs.value.length) {
+      saved.payload.currentIndex = 0
+    }
+    currentIndex.value = saved.payload.currentIndex
+    answers.value = saved.payload.answers ?? {}
+    // 恢复已用时长：startTime 回溯，使 elapsedSeconds() 与实际用时一致
+    startTime.value = Date.now() - (saved.payload.elapsed ?? 0) * 1000
+    return true
+  }
+
+  /** 放弃存档（交卷/重新开始时调用） */
+  function discardProgress(): void {
+    if (exam.value) clearProgress('exam', exam.value.id)
+  }
+
   /** 记录某题答案 */
   function setAnswer(questionId: string, value: UserAnswerValue): void {
     const prev = answers.value[questionId]
@@ -82,6 +125,7 @@ export const useExamStore = defineStore('exam', () => {
       answered: isAnswered(value as never),
       duration: prev?.duration ?? 0,
     }
+    saveProgressNow()
   }
 
   /** 累计某题作答时长 */
@@ -92,13 +136,22 @@ export const useExamStore = defineStore('exam', () => {
   }
 
   function next(): void {
-    if (currentIndex.value < total.value - 1) currentIndex.value++
+    if (currentIndex.value < total.value - 1) {
+      currentIndex.value++
+      saveProgressNow()
+    }
   }
   function prev(): void {
-    if (currentIndex.value > 0) currentIndex.value--
+    if (currentIndex.value > 0) {
+      currentIndex.value--
+      saveProgressNow()
+    }
   }
   function goTo(index: number): void {
-    if (index >= 0 && index < total.value) currentIndex.value = index
+    if (index >= 0 && index < total.value) {
+      currentIndex.value = index
+      saveProgressNow()
+    }
   }
 
   /** 计算耗时（秒） */
@@ -146,11 +199,13 @@ export const useExamStore = defineStore('exam', () => {
     }
     result.value = res
     finished.value = true
+    discardProgress()
     return res
   }
 
   /** 重置（重新考试） */
   function reset(): void {
+    discardProgress()
     answers.value = {}
     currentIndex.value = 0
     startTime.value = 0
@@ -162,5 +217,6 @@ export const useExamStore = defineStore('exam', () => {
     exam, refs, currentIndex, answers, loading, error, startTime, finished, result,
     currentId, total, progress, answeredCount,
     startExam, startExamWithRaw, setAnswer, addDuration, next, prev, goTo, submit, reset, elapsedSeconds,
+    hasSavedProgress, restoreFromSaved, discardProgress,
   }
 })

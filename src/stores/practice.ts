@@ -4,6 +4,7 @@
  * 特点：提交后立即判分、显示标准答案与解析，累计积分与统计。
  */
 import { defineStore } from 'pinia'
+import { clearProgress, hasProgress, loadProgress, saveProgress } from '../utils/progress'
 import { computed, ref } from 'vue'
 import type { Exam, QuestionRef, UserAnswerValue } from '../types/exam'
 import { fetchExam } from '../services/api'
@@ -86,6 +87,8 @@ export const usePracticeStore = defineStore('practice', () => {
       }
       states.value = {}
       currentIndex.value = 0
+      // 尝试恢复上次进度（有存档且题序一致时）
+      restoreFromSaved(e.id)
     } catch (e) {
       error.value = (e as Error).message
       throw e
@@ -121,11 +124,58 @@ export const usePracticeStore = defineStore('practice', () => {
     }
   }
 
+  /* ===== 进度持久化 ===== */
+
+  /** 保存当前进度 */
+  function saveProgressNow(): void {
+    if (!exam.value) return
+    saveProgress('practice', exam.value.id, {
+      order: order.value,
+      currentIndex: currentIndex.value,
+      states: states.value,
+      points: points.value,
+    })
+  }
+
+  /** 是否存在存档 */
+  function hasSavedProgress(): boolean {
+    return exam.value ? hasProgress('practice', exam.value.id) : false
+  }
+
+  /** 尝试恢复存档，返回是否恢复成功 */
+  function restoreFromSaved(examId: string): boolean {
+    const saved = loadProgress<{
+      order: number[]
+      currentIndex: number
+      states: Record<string, PracticeItemState>
+      points: number
+    }>('practice', examId)
+    if (!saved) return false
+    const savedOrder = saved.payload.order ?? []
+    // 题序一致性检查：存档题序长度与当前题数一致才恢复
+    if (savedOrder.length !== order.value.length) return false
+    // 序号必须在合法范围
+    if (saved.payload.currentIndex < 0 || saved.payload.currentIndex >= order.value.length) {
+      saved.payload.currentIndex = 0
+    }
+    order.value = savedOrder
+    states.value = saved.payload.states ?? {}
+    currentIndex.value = saved.payload.currentIndex
+    points.value = saved.payload.points ?? 0
+    return true
+  }
+
+  /** 放弃存档（重新开始/完成时调用） */
+  function discardProgress(): void {
+    if (exam.value) clearProgress('practice', exam.value.id)
+  }
+
   /** 设置当前答案（未提交前可改） */
   function setAnswer(questionId: string, value: UserAnswerValue): void {
     const s = states.value[questionId]
     if (s?.submitted) return
     states.value[questionId] = { ...s, questionId, userAnswer: value, submitted: false } as PracticeItemState
+    saveProgressNow()
   }
 
   /** 当前题是否已作答 */
@@ -171,6 +221,7 @@ export const usePracticeStore = defineStore('practice', () => {
     daily.value.done += 1
     daily.value.points = points.value
     persistDaily()
+    saveProgressNow()
     return { isCorrect: correct, correctAnswer: q.answer as UserAnswerValue }
   }
 
@@ -179,15 +230,22 @@ export const usePracticeStore = defineStore('practice', () => {
   }
 
   function next(): void {
-    if (currentIndex.value < total.value - 1) currentIndex.value++
+    if (currentIndex.value < total.value - 1) {
+      currentIndex.value++
+      saveProgressNow()
+    }
   }
   function prev(): void {
-    if (currentIndex.value > 0) currentIndex.value--
+    if (currentIndex.value > 0) {
+      currentIndex.value--
+      saveProgressNow()
+    }
   }
 
   /** 完成练习 → 生成并保存历史记录（可选） */
   function finishPractice(): void {
     if (!exam.value) return
+    discardProgress()
     const history = useHistoryStore()
     history.addRecord({
       examId: exam.value.id,
@@ -202,6 +260,7 @@ export const usePracticeStore = defineStore('practice', () => {
   }
 
   function reset(): void {
+    discardProgress()
     exam.value = null
     refs.value = []
     order.value = []
@@ -214,5 +273,6 @@ export const usePracticeStore = defineStore('practice', () => {
     exam, refs, currentIndex, states, loading, error, points, daily,
     total, currentId, progress, correctCount,
     startPractice, startPracticeWithRaw, setAnswer, hasAnswer, submitCurrent, next, prev, finishPractice, reset,
+    hasSavedProgress, restoreFromSaved, discardProgress,
   }
 })

@@ -8,6 +8,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useExamStore } from '../stores/exam'
 import { findQuestion, findReadingGroup } from '../utils/parser'
+import { hasProgress as hasSavedProgress } from '../utils/progress'
 import ExamProgress from '../components/ExamProgress.vue'
 import QuestionCard from '../components/QuestionCard.vue'
 import AnswerPanel from '../components/AnswerPanel.vue'
@@ -25,16 +26,35 @@ const aiShow = ref(false)
 /** 每题的 AI 上下文缓存 */
 const aiContext = ref('')
 
+/** 是否有可恢复的考试存档 */
+const restored = ref(false)
+const restarting = ref(false)
+
 onMounted(async () => {
   const id = route.params.id as string
   if (!examStore.exam || examStore.exam.id !== id) {
+    const hadSaved = hasSavedProgress('exam', id) // start 前检测（直接读 localStorage）
     try {
       await examStore.startExam(id)
+      if (hadSaved) restored.value = true
     } catch {
       router.replace('/')
     }
   }
 })
+
+/** 重新开始：丢弃存档并重新加载 */
+async function restartExam(): Promise<void> {
+  restarting.value = true
+  examStore.discardProgress()
+  try {
+    const id = route.params.id as string
+    await examStore.startExam(id)
+    restored.value = false
+  } finally {
+    restarting.value = false
+  }
+}
 
 const currentQuestion = computed(() => {
   if (!examStore.exam || !examStore.currentId) return null
@@ -126,6 +146,25 @@ function submitClicked(): void {
       <h1 class="text-lg font-semibold text-gray-900">{{ examStore.exam.title }}</h1>
       <p class="text-xs text-gray-400">考试模式 · 交卷前不显示答案</p>
     </div>
+
+    <!-- 恢复进度提示 -->
+    <div
+      v-if="restored && !restarting"
+      class="mb-4 flex items-center justify-between rounded-sm border border-amber-200 bg-amber-50 px-4 py-2.5"
+    >
+      <p class="text-sm text-amber-800">
+        <b>已恢复上次考试进度</b>
+        · 上次做到第 {{ examStore.currentIndex + 1 }} / {{ examStore.total }} 题（已答 {{ examStore.answeredCount }} 题）
+      </p>
+      <button
+        type="button"
+        class="flex-shrink-0 rounded-sm border border-amber-300 px-2.5 py-1 text-xs text-amber-700 hover:bg-amber-100"
+        @click="restartExam"
+      >
+        重新开始
+      </button>
+    </div>
+    <div v-else-if="restarting" class="mb-4 text-xs text-gray-400">正在重新加载…</div>
 
     <!-- 进度 -->
     <div class="mb-4 rounded-sm border border-gray-200 bg-white p-4">
