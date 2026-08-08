@@ -1,0 +1,172 @@
+{
+ "exams": [
+  {
+   "id": "user-1",
+   "file": "n3-user-1.json",
+   "title": "N3 自主练习 第1套",
+   "timeLimit": 60,
+   "passScore": 178,
+   "totalScore": 356,
+   "totalQuestions": 178,
+   "sections": [
+    {
+     "name": "文字・語彙",
+     "count": 120
+    },
+    {
+     "name": "文法",
+     "count": 58
+    }
+   ]
+  },
+  {
+   "id": "user-2",
+   "file": "n3-user-2.json",
+   "title": "N3 自主练习 第2套",
+   "timeLimit": 60,
+   "passScore": 178,
+   "totalScore": 356,
+   "totalQuestions": 178,
+   "sections": [
+    {
+     "name": "文字・語彙",
+     "count": 118
+    },
+    {
+     "name": "文法",
+     "count": 60
+    }
+   ]
+  },
+  {
+   "id": "user-3",
+   "file": "n3-user-3.json",
+   "title": "N3 自主练习 第3套",
+   "timeLimit": 60,
+   "passScore": 178,
+   "totalScore": 356,
+   "totalQuestions": 178,
+   "sections": [
+    {
+     "name": "文字・語彙",
+     "count": 138
+    },
+    {
+     "name": "文法",
+     "count": 40
+    }
+   ]
+  },
+  {
+   "id": "user-4",
+   "file": "n3-user-4.json",
+   "title": "N3 自主练习 第4套",
+   "timeLimit": 60,
+   "passScore": 176,
+   "totalScore": 352,
+   "totalQuestions": 176,
+   "sections": [
+    {
+     "name": "文字・語彙",
+     "count": 113
+    },
+    {
+     "name": "文法",
+     "count": 63
+    }
+   ]
+  },
+  {
+   "id": "5",
+   "file": "n3-user-5.json",
+   "title": "N3 自主练习 第5套",
+   "timeLimit": 60,
+   "passScore": 72.6,
+   "totalScore": 121,
+   "totalQuestions": 58,
+   "sections": [
+    {
+     "name": "文字・語彙",
+     "count": 35
+    },
+    {
+     "name": "文法",
+     "count": 18
+    },
+    {
+     "name": "読解",
+     "count": 5
+    }
+   ]
+  },
+  {
+   "id": "6",
+   "file": "n3-user-6.json",
+   "title": "N3 自主练习 第6套",
+   "timeLimit": 60,
+   "passScore": 72.6,
+   "totalScore": 121,
+   "totalQuestions": 58,
+   "sections": [
+    {
+     "name": "文字・語彙",
+     "count": 35
+    },
+    {
+     "name": "文法",
+     "count": 18
+    },
+    {
+     "name": "読解",
+     "count": 5
+    }
+   ]
+  },
+  {
+   "id": "7",
+   "file": "n3-user-7.json",
+   "title": "N3 自主练习 第7套",
+   "timeLimit": 60,
+   "passScore": 72.6,
+   "totalScore": 121,
+   "totalQuestions": 58,
+   "sections": [
+    {
+     "name": "文字・語彙",
+     "count": 35
+    },
+    {
+     "name": "文法",
+     "count": 18
+    },
+    {
+     "name": "読解",
+     "count": 5
+    }
+   ]
+  },
+  {
+   "id": "8",
+   "file": "n3-user-8.json",
+   "title": "N3 自主练习 第8套",
+   "timeLimit": 60,
+   "passScore": 72.6,
+   "totalScore": 121,
+   "totalQuestions": 58,
+   "sections": [
+    {
+     "name": "文字・語彙",
+     "count": 35
+    },
+    {
+     "name": "文法",
+     "count": 18
+    },
+    {
+     "name": "読解",
+     "count": 5
+    }
+   ]
+  }
+ ]
+}

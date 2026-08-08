@@ -17,11 +17,26 @@ export const apiConfig: { mode: ApiMode; base: string } = {
   base: import.meta.env.VITE_API_BASE ?? '/api',
 }
 
-// 本地练习卷清单（用户整理的 N3 练习，4 份）
-const localExamModules = import.meta.glob('../data/jlpt-user/*.json', {
+// 练习卷：仅 eager 加载轻量清单（manifest），卷数据按需动态 import（避免首屏加载全部卷）
+interface ExamMetaEntry {
+  id: string
+  file: string
+  title: string
+  timeLimit: number
+  passScore: number
+  totalScore: number
+  totalQuestions: number
+  sections: { name: string; count: number }[]
+}
+const examManifest = (import.meta.glob('../data/jlpt-user/manifest.json', {
   eager: true,
   import: 'default',
-}) as Record<string, Record<string, unknown>>
+}) as Record<string, { exams: ExamMetaEntry[] }>)[
+  '../data/jlpt-user/manifest.json'
+] ?? { exams: [] as ExamMetaEntry[] }
+const examLoaders = import.meta.glob('../data/jlpt-user/*.json', {
+  import: 'default',
+}) as Record<string, () => Promise<Record<string, unknown>>>
 
 
 /** JLPT 真题类型 */
@@ -47,11 +62,11 @@ export interface JLPTQuestionGroup {
   translation: string
 }
 
-// JLPT 真题文件（N2/N3，按整卷呈现）
+// JLPT 真题文件（N2/N3，按整卷呈现）—— 懒加载：进入真题库页才按 level 加载
 const localJLPTCache: { n2: JLPTExam[]; n3: JLPTExam[] } = { n2: [], n3: [] }
 const jlptImporters = {
-  n2: import.meta.glob('../data/jlpt/N2/*.json', { eager: true, import: 'default' }),
-  n3: import.meta.glob('../data/jlpt/N3/*.json', { eager: true, import: 'default' }),
+  n2: import.meta.glob('../data/jlpt/N2/*.json', { import: 'default' }) as Record<string, () => Promise<unknown>>,
+  n3: import.meta.glob('../data/jlpt/N3/*.json', { import: 'default' }) as Record<string, () => Promise<unknown>>,
 }
 
 /** 获取 JLPT 真题卷列表（整卷，不拆散） */
@@ -59,9 +74,10 @@ export async function fetchJLPTExams(level: 'N2' | 'N3'): Promise<JLPTExam[]> {
   if (apiConfig.mode === 'local') {
     const key = level === 'N2' ? 'n2' : 'n3'
     if (localJLPTCache[key].length === 0) {
-      localJLPTCache[key] = Object.values(jlptImporters[key]).map((raw) =>
-        raw as unknown as JLPTExam,
+      const loaded = await Promise.all(
+        Object.values(jlptImporters[key]).map((loader) => loader()),
       )
+      localJLPTCache[key] = loaded.map((raw) => raw as JLPTExam)
       // 按考试时间排序（2018年7月 → 2026年7月）
       localJLPTCache[key].sort((a, b) => {
         const ta = a.examTitle.match(/(\d{4})年(\d+)月/)
@@ -90,19 +106,16 @@ async function request<T>(path: string): Promise<T> {
 /** 获取试卷列表（仅元信息） */
 export async function fetchExamList(): Promise<{ id: string; title: string; timeLimit: number; passScore: number; totalScore: number; totalQuestions: number; sections: Exam['sections'] }[]> {
   if (apiConfig.mode === 'local') {
-    const list = Object.values(localExamModules).map((raw) => {
-      const exam = parseExamRaw(raw)
-      return {
-        id: exam.id,
-        title: exam.title,
-        timeLimit: exam.timeLimit,
-        passScore: exam.passScore,
-        totalScore: exam.totalScore,
-        totalQuestions: exam.totalQuestions,
-        sections: exam.sections,
-      }
-    })
-    // 按 testId 数字排序
+    // 直接读轻量清单（2.9KB），无需解析全部卷数据
+    const list = examManifest.exams.map((e) => ({
+      id: e.id,
+      title: e.title,
+      timeLimit: e.timeLimit,
+      passScore: e.passScore,
+      totalScore: e.totalScore,
+      totalQuestions: e.totalQuestions,
+      sections: e.sections,
+    }))
     return list.sort((a, b) => Number(a.id) - Number(b.id))
   }
   return request('/exams')
@@ -111,12 +124,16 @@ export async function fetchExamList(): Promise<{ id: string; title: string; time
 /** 获取完整试卷 */
 export async function fetchExam(examId: string): Promise<Exam> {
   if (apiConfig.mode === 'local') {
-    const raw = Object.entries(localExamModules).find(
-      ([, v]) => String(v.testId ?? v.id) === String(examId),
-    )?.[1]
-    if (!raw) {
+    const meta = examManifest.exams.find((e) => String(e.id) === String(examId))
+    if (!meta) {
       throw new Error(`未找到试卷: ${examId}`)
     }
+    // 按需加载该卷 JSON（独立 chunk）
+    const loader = examLoaders[`../data/jlpt-user/${meta.file}`]
+    if (!loader) {
+      throw new Error(`试卷数据加载器不存在: ${examId}`)
+    }
+    const raw = await loader()
     return parseExamRaw(raw)
   }
   const raw = await request<Record<string, unknown>>(`/exam/${examId}`)

@@ -45,6 +45,7 @@ const AI_KEY = env.VITE_AI_API_KEY || ''
 const AI_MODEL = env.VITE_AI_MODEL || 'deepseek-v4-flash'
 
 import { readFileSync } from 'node:fs'
+import { gzipSync } from 'node:zlib'
 
 /** AI 代理：POST /api/ai/chat → DeepSeek */
 async function handleAIProxy(req, res) {
@@ -87,6 +88,9 @@ async function handleAIProxy(req, res) {
   }
 }
 
+/** gzip 压缩缓存（按文件路径） */
+const gzipCache = new Map()
+
 const server = createServer(async (req, res) => {
   try {
     const url = new URL(req.url, 'http://x')
@@ -119,11 +123,29 @@ const server = createServer(async (req, res) => {
     }
 
     const ext = extname(filePath).toLowerCase()
-    res.writeHead(200, {
+    // Cache-Control：带 hash 的构建产物可长期缓存；HTML 不缓存；其余 1 天
+    const isHashedAsset = /[a-zA-Z0-9_.-]+-[a-zA-Z0-9_-]{8}\.(js|css)$/.test(filePath)
+    const cacheControl = ext === '.html' || !isHashedAsset
+      ? (ext === '.html' ? 'no-cache' : 'public, max-age=86400')
+      : 'public, max-age=31536000, immutable'
+    const headers = {
       'Content-Type': MIME[ext] || 'application/octet-stream',
-      'Cache-Control': ext === '.html' ? 'no-cache' : 'public, max-age=86400',
-    })
-    res.end(content)
+      'Cache-Control': cacheControl,
+    }
+    // gzip 压缩（文本类资源；图片本身已压缩不重复压缩；按路径缓存结果避免重复计算）
+    let out = content
+    const acceptGzip = (req.headers['accept-encoding'] ?? '').includes('gzip')
+    if (acceptGzip && content.length > 1024 && !/\.(png|jpg|jpeg|webp|gif|ico)$/.test(filePath)) {
+      let gz = gzipCache.get(filePath)
+      if (!gz) {
+        gz = gzipSync(content)
+        gzipCache.set(filePath, gz)
+      }
+      headers['Content-Encoding'] = 'gzip'
+      out = gz
+    }
+    res.writeHead(200, headers)
+    res.end(out)
   } catch (e) {
     res.writeHead(500); res.end('Server Error: ' + e.message)
   }

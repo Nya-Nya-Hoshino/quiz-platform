@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.3",
+    "markdown-it": "^15.0.0",
     "naive-ui": "^2.44.1",
     "pinia": "^4.0.2",
     "tailwindcss": "^4.3.3",
