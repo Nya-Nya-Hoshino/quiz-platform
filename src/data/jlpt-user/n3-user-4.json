@@ -22,7 +22,7 @@
    "type": "reading",
    "difficulty": "N3",
    "score": 2,
-   "question": "台風のため、運動会は来週に<u>延期</u>された。",
+   "question": "台風のため、運動会は来週に延期された。",
    "prompt": "下線部「延期」の正しい読み方を選びなさい。",
    "options": [
     "えんき",
@@ -40,7 +40,7 @@
    "type": "reading",
    "difficulty": "N3",
    "score": 2,
-   "question": "妻は<u>実家</u>に帰りました。",
+   "question": "妻は実家に帰りました。",
    "prompt": "下線部「実家」の正しい読み方を選びなさい。",
    "options": [
     "じつや",
@@ -130,7 +130,7 @@
    "type": "reading",
    "difficulty": "N3",
    "score": 2,
-   "question": "先日、友だちを<u>誘って</u>映画を見に行きました。",
+   "question": "先日、友だちを誘って映画を見に行きました。",
    "prompt": "下線部「誘って」の正しい読み方を選びなさい。",
    "options": [
     "つかって",
@@ -148,7 +148,7 @@
    "type": "reading",
    "difficulty": "N3",
    "score": 2,
-   "question": "東京までの新幹線の<u>切符</u>を2枚お願いします。",
+   "question": "東京までの新幹線の切符を2枚お願いします。",
    "prompt": "下線部「切符」の正しい読み方を選びなさい。",
    "options": [
     "きふ",
@@ -238,7 +238,7 @@
    "type": "reading",
    "difficulty": "N3",
    "score": 2,
-   "question": "<u>薄暗い</u>ところで本を読むと目に悪いよ。",
+   "question": "薄暗いところで本を読むと目に悪いよ。",
    "prompt": "下線部「薄暗い」の正しい読み方を選びなさい。",
    "options": [
     "うすくらい",
@@ -256,7 +256,7 @@
    "type": "reading",
    "difficulty": "N3",
    "score": 2,
-   "question": "さのう、<u>劇場</u>で歌舞伎を見ました。",
+   "question": "さのう、劇場で歌舞伎を見ました。",
    "prompt": "下線部「劇場」の正しい読み方を選びなさい。",
    "options": [
     "げじょう",
@@ -886,7 +886,7 @@
    "type": "reading",
    "difficulty": "N3",
    "score": 2,
-   "question": "事故の原因はまだ<u>明らか</u>ではない。",
+   "question": "事故の原因はまだ明らかではない。",
    "prompt": "下線部「明らか」の正しい読み方を選びなさい。",
    "options": [
     "ほがらか",
@@ -904,7 +904,7 @@
    "type": "reading",
    "difficulty": "N3",
    "score": 2,
-   "question": "日本語を<u>基礎</u>からしっかり勉強したいです。",
+   "question": "日本語を基礎からしっかり勉強したいです。",
    "prompt": "下線部「基礎」の正しい読み方を選びなさい。",
    "options": [
     "きそ",
@@ -994,7 +994,7 @@
    "type": "reading",
    "difficulty": "N3",
    "score": 2,
-   "question": "中村さん、とても素敵な<u>着物</u>ですね。",
+   "question": "中村さん、とても素敵な着物ですね。",
    "prompt": "下線部「着物」の正しい読み方を選びなさい。",
    "options": [
     "ちゃっぶく",
@@ -1012,7 +1012,7 @@
    "type": "reading",
    "difficulty": "N3",
    "score": 2,
-   "question": "田中さんに<u>速達</u>で書類を届けてもらいました。",
+   "question": "田中さんに速達で書類を届けてもらいました。",
    "prompt": "下線部「速達」の正しい読み方を選びなさい。",
    "options": [
     "そくたつ",
@@ -1102,7 +1102,7 @@
    "type": "reading",
    "difficulty": "N3",
    "score": 2,
-   "question": "どの靴を買うか<u>迷って</u>います。",
+   "question": "どの靴を買うか迷っています。",
    "prompt": "下線部「迷って」の正しい読み方を選びなさい。",
    "options": [
     "はしって",
@@ -1120,7 +1120,7 @@
    "type": "reading",
    "difficulty": "N3",
    "score": 2,
-   "question": "ここでは酒類の<u>販売</u>は禁止されています。",
+   "question": "ここでは酒類の販売は禁止されています。",
    "prompt": "下線部「販売」の正しい読み方を選びなさい。",
    "options": [
     "はんうり",
@@ -1210,7 +1210,7 @@
    "type": "reading",
    "difficulty": "N3",
    "score": 2,
-   "question": "将来は新聞社の<u>記者</u>になりたいです。",
+   "question": "将来は新聞社の記者になりたいです。",
    "prompt": "下線部「記者」の正しい読み方を選びなさい。",
    "options": [
     "ししゃ",
@@ -1228,7 +1228,7 @@
    "type": "reading",
    "difficulty": "N3",
    "score": 2,
-   "question": "<u>財布</u>を家に忘れて、出てきてしまった。",
+   "question": "財布を家に忘れて、出てきてしまった。",
    "prompt": "下線部「財布」の正しい読み方を選びなさい。",
    "options": [
     "さいふ",
@@ -1318,7 +1318,7 @@
    "type": "reading",
    "difficulty": "N3",
    "score": 2,
-   "question": "彼は高い所から落ちて<u>意識</u>を失った。",
+   "question": "彼は高い所から落ちて意識を失った。",
    "prompt": "下線部「意識」の正しい読み方を選びなさい。",
    "options": [
     "いしき",
@@ -1336,7 +1336,7 @@
    "type": "reading",
    "difficulty": "N3",
    "score": 2,
-   "question": "では、<u>遠慮</u>なくいただきます。",
+   "question": "では、遠慮なくいただきます。",
    "prompt": "下線部「遠慮」の正しい読み方を選びなさい。",
    "options": [
     "えんしょ",
@@ -1966,7 +1966,7 @@
    "type": "reading",
    "difficulty": "N3",
    "score": 2,
-   "question": "また桜の咲く<u>季節</u>になりました。",
+   "question": "また桜の咲く季節になりました。",
    "prompt": "下線部「季節」の正しい読み方を選びなさい。",
    "options": [
     "きせつ",
@@ -1984,7 +1984,7 @@
    "type": "reading",
    "difficulty": "N3",
    "score": 2,
-   "question": "この機械の<u>寿命</u>は5年です。",
+   "question": "この機械の寿命は5年です。",
    "prompt": "下線部「寿命」の正しい読み方を選びなさい。",
    "options": [
     "じゅめい",
@@ -2074,7 +2074,7 @@
    "type": "reading",
    "difficulty": "N3",
    "score": 2,
-   "question": "彼は多くの財産を<u>残した</u>らしい。",
+   "question": "彼は多くの財産を残したらしい。",
    "prompt": "下線部「残した」の正しい読み方を選びなさい。",
    "options": [
     "すぎた",
@@ -2092,7 +2092,7 @@
    "type": "reading",
    "difficulty": "N3",
    "score": 2,
-   "question": "この論文は1950年に<u>発表</u>されました。",
+   "question": "この論文は1950年に発表されました。",
    "prompt": "下線部「発表」の正しい読み方を選びなさい。",
    "options": [
     "はびょう",
@@ -2182,7 +2182,7 @@
    "type": "reading",
    "difficulty": "N3",
    "score": 2,
-   "question": "コストがかかりすぎて<u>赤字</u>になった。",
+   "question": "コストがかかりすぎて赤字になった。",
    "prompt": "下線部「赤字」の正しい読み方を選びなさい。",
    "options": [
     "せきじ",
@@ -2200,7 +2200,7 @@
    "type": "reading",
    "difficulty": "N3",
    "score": 2,
-   "question": "彼女は自分の考えが正しいと強く<u>主張</u>した。",
+   "question": "彼女は自分の考えが正しいと強く主張した。",
    "prompt": "下線部「主張」の正しい読み方を選びなさい。",
    "options": [
     "しゅちょう",
@@ -2272,7 +2272,7 @@
    "type": "reading",
    "difficulty": "N3",
    "score": 2,
-   "question": "会議を予定どおりに<u>進めて</u>いきます。",
+   "question": "会議を予定どおりに進めていきます。",
    "prompt": "下線部「進めて」の正しい読み方を選びなさい。",
    "options": [
     "いじめて",
@@ -2290,7 +2290,7 @@
    "type": "reading",
    "difficulty": "N3",
    "score": 2,
-   "question": "このソフトを使うと、データの<u>処理</u>が簡単にできます。",
+   "question": "このソフトを使うと、データの処理が簡単にできます。",
    "prompt": "下線部「処理」の正しい読み方を選びなさい。",
    "options": [
     "しょり",
@@ -2362,7 +2362,7 @@
    "type": "reading",
    "difficulty": "N3",
    "score": 2,
-   "question": "ここから中央銀行の<u>看板</u>が見えます。",
+   "question": "ここから中央銀行の看板が見えます。",
    "prompt": "下線部「看板」の正しい読み方を選びなさい。",
    "options": [
     "かんばん",
@@ -2380,7 +2380,7 @@
    "type": "reading",
    "difficulty": "N3",
    "score": 2,
-   "question": "図書館から借りた本を<u>返却</u>しました。",
+   "question": "図書館から借りた本を返却しました。",
    "prompt": "下線部「返却」の正しい読み方を選びなさい。",
    "options": [
     "へんきゃつ",
@@ -2920,7 +2920,7 @@
    "type": "reading",
    "difficulty": "N3",
    "score": 2,
-   "question": "わからない単語は<u>字引</u>を引いて調べます。",
+   "question": "わからない単語は字引を引いて調べます。",
    "prompt": "下線部「字引」の正しい読み方を選びなさい。",
    "options": [
     "じいん",
@@ -2938,7 +2938,7 @@
    "type": "reading",
    "difficulty": "N3",
    "score": 2,
-   "question": "相手の<u>反応</u>を見ながら、説明を続けます。",
+   "question": "相手の反応を見ながら、説明を続けます。",
    "prompt": "下線部「反応」の正しい読み方を選びなさい。",
    "options": [
     "はんこう",
@@ -3010,7 +3010,7 @@
    "type": "reading",
    "difficulty": "N3",
    "score": 2,
-   "question": "このプリントを中村さんに<u>渡して</u>ください。",
+   "question": "このプリントを中村さんに渡してください。",
    "prompt": "下線部「渡して」の正しい読み方を選びなさい。",
    "options": [
     "のばして",
@@ -3028,7 +3028,7 @@
    "type": "reading",
    "difficulty": "N3",
    "score": 2,
-   "question": "家から学校までの<u>距離</u>は近いほうです。",
+   "question": "家から学校までの距離は近いほうです。",
    "prompt": "下線部「距離」の正しい読み方を選びなさい。",
    "options": [
     "きより",
@@ -3100,7 +3100,7 @@
    "type": "reading",
    "difficulty": "N3",
    "score": 2,
-   "question": "若者言葉の<u>特徴</u>について論文を書きました。",
+   "question": "若者言葉の特徴について論文を書きました。",
    "prompt": "下線部「特徴」の正しい読み方を選びなさい。",
    "options": [
     "とくじょう",
@@ -3118,7 +3118,7 @@
    "type": "reading",
    "difficulty": "N3",
    "score": 2,
-   "question": "床暖房のおかげで、冬も<u>快適</u>に暮らすことができます。",
+   "question": "床暖房のおかげで、冬も快適に暮らすことができます。",
    "prompt": "下線部「快適」の正しい読み方を選びなさい。",
    "options": [
     "かいでつ",

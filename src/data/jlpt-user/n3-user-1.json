@@ -1534,7 +1534,7 @@
    "type": "reading",
    "difficulty": "N3",
    "score": 2,
-   "question": "大学院に入るか<u>就職</u>するかまだ決めていません。",
+   "question": "大学院に入るか就職するかまだ決めていません。",
    "prompt": "下線部「就職」の正しい読み方を選びなさい。",
    "options": [
     "しゅしょく",
@@ -1552,7 +1552,7 @@
    "type": "reading",
    "difficulty": "N3",
    "score": 2,
-   "question": "彼は病気で授業を<u>欠席</u>した。",
+   "question": "彼は病気で授業を欠席した。",
    "prompt": "下線部「欠席」の正しい読み方を選びなさい。",
    "options": [
     "かっせき",
@@ -1642,7 +1642,7 @@
    "type": "reading",
    "difficulty": "N3",
    "score": 2,
-   "question": "毎朝、妹が猫に<u>餌</u>をやります。",
+   "question": "毎朝、妹が猫に餌をやります。",
    "prompt": "下線部「餌」の正しい読み方を選びなさい。",
    "options": [
     "えさ",
@@ -1660,7 +1660,7 @@
    "type": "reading",
    "difficulty": "N3",
    "score": 2,
-   "question": "今度の週末は<u>花見</u>に行く予定です。",
+   "question": "今度の週末は花見に行く予定です。",
    "prompt": "下線部「花見」の正しい読み方を選びなさい。",
    "options": [
     "かけん",
@@ -1750,7 +1750,7 @@
    "type": "reading",
    "difficulty": "N3",
    "score": 2,
-   "question": "水族館は多くの<u>親子</u>連れでにぎやかだった。",
+   "question": "水族館は多くの親子連れでにぎやかだった。",
    "prompt": "下線部「親子」の正しい読み方を選びなさい。",
    "options": [
     "しんし",
@@ -1768,7 +1768,7 @@
    "type": "reading",
    "difficulty": "N3",
    "score": 2,
-   "question": "<u>夕食</u>を簡単に済ませて、映画を見に行きたいです。",
+   "question": "夕食を簡単に済ませて、映画を見に行きたいです。",
    "prompt": "下線部「夕食」の正しい読み方を選びなさい。",
    "options": [
     "ゆうめし",
@@ -2398,7 +2398,7 @@
    "type": "reading",
    "difficulty": "N3",
    "score": 2,
-   "question": "弊店は朝7時から<u>営業</u>します。",
+   "question": "弊店は朝7時から営業します。",
    "prompt": "下線部「営業」の正しい読み方を選びなさい。",
    "options": [
     "えいきょ",
@@ -2416,7 +2416,7 @@
    "type": "reading",
    "difficulty": "N3",
    "score": 2,
-   "question": "何か好きなテレビ<u>番組</u>はありますか。",
+   "question": "何か好きなテレビ番組はありますか。",
    "prompt": "下線部「番組」の正しい読み方を選びなさい。",
    "options": [
     "ばんくみ",
@@ -2506,7 +2506,7 @@
    "type": "reading",
    "difficulty": "N3",
    "score": 2,
-   "question": "『赤と黒』はフランスの<u>作家</u>スタンダールの長編小説です。",
+   "question": "『赤と黒』はフランスの作家スタンダールの長編小説です。",
    "prompt": "下線部「作家」の正しい読み方を選びなさい。",
    "options": [
     "さか",
@@ -2524,7 +2524,7 @@
    "type": "reading",
    "difficulty": "N3",
    "score": 2,
-   "question": "すみません、お<u>勘定</u>をお願いします。",
+   "question": "すみません、お勘定をお願いします。",
    "prompt": "下線部「勘定」の正しい読み方を選びなさい。",
    "options": [
     "かんてい",
@@ -2614,7 +2614,7 @@
    "type": "reading",
    "difficulty": "N3",
    "score": 2,
-   "question": "せっかくのチャンスを<u>失って</u>しまった。",
+   "question": "せっかくのチャンスを失ってしまった。",
    "prompt": "下線部「失って」の正しい読み方を選びなさい。",
    "options": [
     "あらそって",
@@ -2632,7 +2632,7 @@
    "type": "reading",
    "difficulty": "N3",
    "score": 2,
-   "question": "福袋を求めて長い<u>行列</u>ができている。",
+   "question": "福袋を求めて長い行列ができている。",
    "prompt": "下線部「行列」の正しい読み方を選びなさい。",
    "options": [
     "こうれつ",
@@ -2722,7 +2722,7 @@
    "type": "reading",
    "difficulty": "N3",
    "score": 2,
-   "question": "<u>汚い</u>手で触らないで。",
+   "question": "汚い手で触らないで。",
    "prompt": "下線部「汚い」の正しい読み方を選びなさい。",
    "options": [
     "きたない",
@@ -2740,7 +2740,7 @@
    "type": "reading",
    "difficulty": "N3",
    "score": 2,
-   "question": "どうなるかわかりませんが、<u>一応</u>行ってみましょう。",
+   "question": "どうなるかわかりませんが、一応行ってみましょう。",
    "prompt": "下線部「一応」の正しい読み方を選びなさい。",
    "options": [
     "いちお",
@@ -2830,7 +2830,7 @@
    "type": "reading",
    "difficulty": "N3",
    "score": 2,
-   "question": "図書館で<u>大声</u>で話してはいけません。",
+   "question": "図書館で大声で話してはいけません。",
    "prompt": "下線部「大声」の正しい読み方を選びなさい。",
    "options": [
     "おおこえ",
@@ -2848,7 +2848,7 @@
    "type": "reading",
    "difficulty": "N3",
    "score": 2,
-   "question": "<u>化粧</u>を落としてから寝ます。",
+   "question": "化粧を落としてから寝ます。",
    "prompt": "下線部「化粧」の正しい読み方を選びなさい。",
    "options": [
     "かしょ",
