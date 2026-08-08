@@ -1,23 +1,23 @@
 /**
  * 错题艾宾浩斯回顾算法
  *
- * 周期表（天，相对错题产生日）：第 2 天 / 第 4 天 / 第 7 天 / 第 15 天
+ * 周期表（天，相对错题产生日）：第 1 天 / 第 2 天 / 第 4 天 / 第 7 天 / 第 15 天
  *
  * 规则：
- * - 第 1 周期到期日 = 错题产生日 + 2 天
+ * - 第 1 周期到期日 = 错题产生日 + 1 天
  * - 到期日当天未完成回顾 → 顺延 1 天（次日继续出现，直到完成）
  * - 到期日回顾但答错 → 顺延 1 天（不推进周期，不新增错题记录）
- * - 后续周期（第 4/7/15 天）以「上一周期实际完成日」为基准顺延：
+ * - 后续周期（第 2/4/7/15 天）以「上一周期实际完成日」为基准顺延：
  *   下一周期到期日 = 上一周期完成日 + 间隔天数
- * - 完成第 4 周期 → 标记「已熟练」，不再进入回顾
+ * - 完成第 5 周期 → 标记「已熟练」，不再进入回顾
  *
  * 时区：所有「天」均按北京时间（UTC+8）日历日计算，
  * 以北京时区当天 0 点为跨日边界，与运行环境本地时区无关。
  */
 import type { WrongRecord } from '../types/exam'
 
-/** 回顾间隔（天）：第 2 / 4 / 7 / 15 天 */
-export const REVIEW_INTERVALS = [2, 4, 7, 15] as const
+/** 回顾间隔（天）：第 1 / 2 / 4 / 7 / 15 天 */
+export const REVIEW_INTERVALS = [1, 2, 4, 7, 15] as const
 
 /** 总周期数 */
 export const TOTAL_CYCLES = REVIEW_INTERVALS.length
@@ -36,7 +36,7 @@ export function beijingDayStart(ts: number): number {
   return beijingDayIndex(ts) * DAY_MS - BJ_OFFSET
 }
 
-/** 错题产生时初始化回顾状态（第一周期到期 = 产生日 + 2 天，北京 0 点） */
+/** 错题产生时初始化回顾状态（第一周期到期 = 产生日 + 1 天，北京 0 点） */
 export function initReviewState(now = Date.now()): {
   reviewCount: number
   currentCycle: number
