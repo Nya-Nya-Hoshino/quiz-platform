@@ -118,7 +118,7 @@ function submitClicked(): void {
 </script>
 
 <template>
-  <div v-if="examStore.loading" class="py-16 text-center text-sm text-gray-500">试卷加载中…</div>
+  <div v-if="examStore.loading" class="loading-block"><span class="loading-spinner loading-lg" />试卷加载中…</div>
 
   <div v-else-if="examStore.exam" class="mx-auto max-w-3xl">
     <!-- 顶部信息条 -->

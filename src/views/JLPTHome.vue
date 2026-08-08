@@ -52,7 +52,7 @@ const stats = computed(() => {
       </p>
     </div>
 
-    <div v-if="loading" class="py-16 text-center text-sm text-gray-500">加载中…</div>
+    <div v-if="loading" class="loading-block"><span class="loading-spinner loading-lg" />真题加载中…</div>
     <div v-else-if="error" class="rounded-sm border border-red-200 bg-red-50 p-4 text-sm text-red-600">{{ error }}</div>
 
     <div v-else>

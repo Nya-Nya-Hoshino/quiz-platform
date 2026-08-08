@@ -2,14 +2,45 @@
 /**
  * 主布局：顶部导航 + 内容区
  */
-import { useRoute } from 'vue-router'
-import { computed } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { computed, onBeforeUnmount, ref } from 'vue'
 import { useWrongBookStore } from '../stores/wrongBook'
 import JLPTCountdown from '../components/JLPTCountdown.vue'
 import SiteSticker from '../components/SiteSticker.vue'
 
 const route = useRoute()
+const router = useRouter()
 const wrongBook = useWrongBookStore()
+
+/** 顶部加载进度条：路由切换（含懒加载 chunk 与页面数据加载期）时显示 */
+const progressVisible = ref(false)
+const progressWidth = ref(0)
+let progressTimer: number | undefined
+const FINISH_DELAY = 350 // 完成动画停留时间
+
+function startProgress(): void {
+  progressVisible.value = true
+  progressWidth.value = 12
+  window.clearInterval(progressTimer)
+  // 模拟推进：12% → 90%（真实完成由 afterEach 置 100%）
+  progressTimer = window.setInterval(() => {
+    progressWidth.value = Math.min(
+      90,
+      progressWidth.value + (90 - progressWidth.value) * 0.18,
+    )
+  }, 200)
+}
+function finishProgress(): void {
+  window.clearInterval(progressTimer)
+  progressWidth.value = 100
+  window.setTimeout(() => {
+    progressVisible.value = false
+    progressWidth.value = 0
+  }, FINISH_DELAY)
+}
+router.beforeEach(startProgress)
+router.afterEach(finishProgress)
+onBeforeUnmount(() => window.clearInterval(progressTimer))
 
 const navItems = [
   { path: '/', label: '题库' },
@@ -29,6 +60,9 @@ const wrongCount = computed(() => wrongBook.total)
 
 <template>
   <div class="flex min-h-screen flex-col">
+    <!-- 路由加载进度条 -->
+    <div v-if="progressVisible" class="top-progress" :style="{ width: progressWidth + '%' }" />
+
     <!-- 顶部导航 -->
     <header class="sticky top-0 z-40 border-b border-gray-200 bg-white">
       <div class="mx-auto flex h-14 max-w-5xl items-center justify-between px-4">
@@ -60,7 +94,11 @@ const wrongCount = computed(() => wrongBook.total)
     <!-- 内容区 + 侧边栏 -->
     <div class="mx-auto flex w-full max-w-6xl flex-1 gap-6 px-4 py-6">
       <main class="min-w-0 flex-1">
-        <router-view />
+        <router-view v-slot="{ Component }">
+          <transition name="page" mode="out-in">
+            <component :is="Component" />
+          </transition>
+        </router-view>
       </main>
       <!-- JLPT 倒计时侧边栏（桌面端显示） -->
       <aside class="hidden w-56 flex-shrink-0 lg:block">

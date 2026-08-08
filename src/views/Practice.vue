@@ -126,7 +126,7 @@ function finishPractice(): void {
 </script>
 
 <template>
-  <div v-if="practice.loading" class="py-16 text-center text-sm text-gray-500">试卷加载中…</div>
+  <div v-if="practice.loading" class="loading-block"><span class="loading-spinner loading-lg" />试卷加载中…</div>
 
   <div v-else-if="practice.exam" class="mx-auto max-w-3xl">
     <!-- 顶部信息条 + 统计 -->
