@@ -65,14 +65,35 @@
           <span class="flex h-6 w-6 items-center justify-center rounded bg-blue-100 text-xs">✨</span>
           近期更新
         </h2>
-        <ul class="list-disc space-y-1 pl-5 text-gray-600">
-          <li><b>交互体验优化</b>：加载动画与路由过渡、答对自动跳转下一题、错题本升级（自由添加 / 单条删除 / 清空）、AI 反馈与路由返回体验改进</li>
-          <li><b>错题订正</b>：N3 自主练习第 1-4 套答案与解析已全面核对订正（第 5/17/41/42/48/84/107/108/126/144/185/263/293/312/335/336/348/377/378/395/402/407/408/462/468/474/479/480/491/509/510/534/563/569/570/684/699/710 等题）</li>
-          <li><b>性能优化</b>：首页加载速度大幅提升（数据按需加载 + gzip 压缩 + 浏览器缓存），打开试卷不再卡顿</li>
-          <li>JLPT 真题库调整为 N2 历年真题（2018-2026），整卷考试/练习双模式</li>
-          <li><b>热更新</b>：AI 解析/反馈支持 Markdown 可视化渲染（标题、加粗、表格、代码块、链接），阅读体验大幅提升</li>
-          <li>新增 N3 自主练习 第 5-8 套（含读解文章组与 ★ 排序题）</li>
-          <li>新增站点公告栏与错题反馈悬浮窗</li>
+        <ul class="space-y-2 pl-1">
+          <li class="flex items-start gap-2">
+            <span class="mt-0.5 flex-shrink-0 rounded-sm bg-blue-100 px-1.5 py-0.5 text-xs text-blue-700">08-08</span>
+            <span class="text-gray-600"><b>交互体验优化</b>：加载动画与路由过渡、答对自动跳转下一题、错题本升级（自由添加 / 单条删除 / 清空）、AI 反馈与路由返回体验改进</span>
+          </li>
+          <li class="flex items-start gap-2">
+            <span class="mt-0.5 flex-shrink-0 rounded-sm bg-blue-100 px-1.5 py-0.5 text-xs text-blue-700">08-08</span>
+            <span class="text-gray-600"><b>错题订正</b>：N3 自主练习第 1-4 套答案与解析已全面核对订正（第 5/17/41/42/48/84/107/108/126/144/185/263/293/312/335/336/348/377/378/395/402/407/408/462/468/474/479/480/491/509/510/534/563/569/570/684/699/710 等题）</span>
+          </li>
+          <li class="flex items-start gap-2">
+            <span class="mt-0.5 flex-shrink-0 rounded-sm bg-blue-100 px-1.5 py-0.5 text-xs text-blue-700">08-08</span>
+            <span class="text-gray-600"><b>性能优化</b>：首页加载速度大幅提升（数据按需加载 + gzip 压缩 + 浏览器缓存），打开试卷不再卡顿</span>
+          </li>
+          <li class="flex items-start gap-2">
+            <span class="mt-0.5 flex-shrink-0 rounded-sm bg-blue-100 px-1.5 py-0.5 text-xs text-blue-700">08-08</span>
+            <span class="text-gray-600">JLPT 真题库调整为 N2 历年真题（2018-2026），整卷考试/练习双模式</span>
+          </li>
+          <li class="flex items-start gap-2">
+            <span class="mt-0.5 flex-shrink-0 rounded-sm bg-blue-100 px-1.5 py-0.5 text-xs text-blue-700">08-07</span>
+            <span class="text-gray-600"><b>热更新</b>：AI 解析/反馈支持 Markdown 可视化渲染（标题、加粗、表格、代码块、链接），阅读体验大幅提升</span>
+          </li>
+          <li class="flex items-start gap-2">
+            <span class="mt-0.5 flex-shrink-0 rounded-sm bg-blue-100 px-1.5 py-0.5 text-xs text-blue-700">08-07</span>
+            <span class="text-gray-600">新增 N3 自主练习 第 5-8 套（含读解文章组与 ★ 排序题）</span>
+          </li>
+          <li class="flex items-start gap-2">
+            <span class="mt-0.5 flex-shrink-0 rounded-sm bg-blue-100 px-1.5 py-0.5 text-xs text-blue-700">08-05</span>
+            <span class="text-gray-600">新增站点公告栏与错题反馈悬浮窗</span>
+          </li>
         </ul>
       </section>
 
