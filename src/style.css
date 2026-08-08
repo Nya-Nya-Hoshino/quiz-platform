@@ -188,3 +188,15 @@ body {
   color: #6b7280;
   font-size: 0.875rem;
 }
+
+/* ===== 明朝体（做题界面：题干/选项/文章） ===== */
+.font-mincho,
+.font-mincho p,
+.font-mincho h3,
+.font-mincho button,
+.font-mincho span,
+.font-mincho label {
+  font-family: "Yu Mincho", "YuMincho", "Hiragino Mincho ProN",
+    "MS Mincho", "Noto Serif CJK JP", "Noto Serif CJK SC",
+    "Source Han Serif SC", "SimSun", serif;
+}

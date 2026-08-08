@@ -101,7 +101,7 @@ function handleFillInput(i: number, e: Event): void {
 </script>
 
 <template>
-  <div class="question-card">
+  <div class="question-card font-mincho">
     <!-- 阅读文章：子题共享段落 -->
     <div v-if="passage" class="mb-4 rounded border border-gray-200 bg-gray-50 p-4">
       <p class="text-sm leading-7 text-gray-700">{{ passage }}</p>
