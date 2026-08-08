@@ -139,6 +139,36 @@ export const useWrongBookStore = defineStore('wrongBook', () => {
     return res
   }
 
+  /**
+   * 自由添加错题（手动录入，不经过答题流程）。
+   * 直接以单选形式入本，可立即进入单题回顾练习。
+   */
+  function addCustom(input: {
+    section?: string
+    difficulty?: string
+    question: string
+    prompt?: string
+    options: string[]
+    answer: number
+    explanation?: string
+  }): string {
+    const id = `custom-${Date.now()}`
+    const question: Question = {
+      id,
+      type: 'single_choice',
+      section: input.section || '自定义',
+      difficulty: input.difficulty || 'N3',
+      score: 2,
+      question: input.question,
+      prompt: input.prompt,
+      options: input.options,
+      answer: input.answer,
+      explanation: input.explanation,
+    }
+    recordWrong(question)
+    return id
+  }
+
   /** 移除错题 */
   function remove(questionId: string): void {
     records.value = records.value.filter((r) => r.questionId !== questionId)
@@ -163,6 +193,6 @@ export const useWrongBookStore = defineStore('wrongBook', () => {
 
   return {
     records, total, dueReviews, masteredCount,
-    recordWrong, submitReview, remove, clear, isWrong, findRecord,
+    recordWrong, addCustom, submitReview, remove, clear, isWrong, findRecord,
   }
 })

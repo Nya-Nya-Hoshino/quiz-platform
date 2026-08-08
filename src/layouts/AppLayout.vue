@@ -96,7 +96,7 @@ const wrongCount = computed(() => wrongBook.total)
       <main class="min-w-0 flex-1">
         <router-view v-slot="{ Component }">
           <transition name="page" mode="out-in">
-            <component :is="Component" />
+            <component :is="Component" :key="route.path" />
           </transition>
         </router-view>
       </main>

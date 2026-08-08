@@ -74,6 +74,7 @@ const answeredSet = computed(() => {
 })
 
 /** 提交当前题 */
+let autoJumpTimer: number | undefined
 function doSubmit(): void {
   if (!practice.hasAnswer()) return
   try {
@@ -85,6 +86,11 @@ function doSubmit(): void {
       const q = currentQuestion.value
       if (q) aiExplain.ensure(q)
     }
+    // 答对自动跳转下一题（短暂停留展示正确反馈）；答错停留查看解析
+    if (fb.isCorrect && practice.currentIndex < practice.total - 1) {
+      window.clearTimeout(autoJumpTimer)
+      autoJumpTimer = window.setTimeout(() => goNext(), 900)
+    }
   } catch (e) {
     /* 未作答提示由按钮 disabled 保证 */
   }
@@ -92,6 +98,7 @@ function doSubmit(): void {
 
 /** 下一题时重置反馈 */
 function goNext(): void {
+  window.clearTimeout(autoJumpTimer)
   lastFeedback.value = null
   practice.next()
 }
