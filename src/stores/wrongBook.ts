@@ -4,7 +4,7 @@
  * 持久化到 localStorage。
  *
  * 记录：具体错题（题干快照）/ 题型 / JLPT 等级（不记录来源试卷）。
- * 艾宾浩斯回顾：第 2/4/7/15 天四周期，顺延机制，完成全部周期标记「已熟练」。
+ * 艾宾浩斯回顾：第 1/2/4/7/15 天五周期，顺延机制，完成全部周期标记「已熟练」。
  *
  * 快速导航：错题点击进入单题练习页（stores/review 相关页面复用本 store）。
  */
@@ -12,9 +12,11 @@ import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import type { WrongRecord, WrongQuestionSnapshot, UserAnswerValue } from '../types/exam'
 import type { Question } from '../types/question'
-import { applyReviewResult, initReviewState, isReviewDue } from '../utils/review'
+import { applyReviewResult, beijingDayStart, initReviewState, isReviewDue, REVIEW_INTERVALS } from '../utils/review'
 
 const STORAGE_KEY = 'quiz-platform:wrong-book'
+/** 回顾周期表迁移标记（旧表 2/4/7/15 → 新表 1/2/4/7/15） */
+const MIGRATED_KEY = 'quiz-platform:wrong-book:review-v2'
 
 /** 从 Question 生成快照（可附带阅读文章） */
 export function toSnapshot(
@@ -59,12 +61,48 @@ function loadAll(): WrongRecord[] {
     if (raw) {
       const parsed = JSON.parse(raw) as WrongRecord[]
       // 兼容：仅保留新结构（含 snapshot）
-      return parsed.filter((r) => r.snapshot && r.questionId)
+      const records = parsed.filter((r) => r.snapshot && r.questionId)
+      // 周期表迁移（旧 2/4/7/15 → 新 1/2/4/7/15）：仅执行一次
+      migrateReviewCycles(records)
+      return records
     }
   } catch {
     /* ignore */
   }
   return []
+}
+
+/**
+ * 旧四周期（2/4/7/15 天）→ 新五周期（1/2/4/7/15 天）迁移。
+ *
+ * - 已完成（熟练）记录：保持不变
+ * - 未开始首次复习（currentCycle=0）：到期日重算为 产生日 + 1 天（新表第 1 周期）
+ * - 进行中记录（currentCycle=n≥1）：已完成周期数不变；
+ *   下次到期日 = 上次回顾日（北京 0 点）+ 新表第 n 周期间隔
+ *
+ * 迁移只执行一次（MIGRATED_KEY 标记），之后不再触碰用户后续复习进度。
+ */
+function migrateReviewCycles(records: WrongRecord[]): void {
+  if (localStorage.getItem(MIGRATED_KEY)) return
+  const now = Date.now()
+  const DAY_MS = 24 * 60 * 60 * 1000
+  let changed = 0
+  for (const r of records) {
+    if (r.completed) continue
+    if (typeof r.currentCycle !== 'number' || typeof r.createdAt !== 'number') continue
+    if (r.currentCycle === 0) {
+      // 首次复习提前到第 1 天（新表第 1 周期）
+      r.nextDueAt = beijingDayStart(r.createdAt) + REVIEW_INTERVALS[0] * DAY_MS
+    } else {
+      // 已完成 n 个周期：以最近回顾日 + 新表第 n 周期间隔
+      const base = r.lastReviewedAt ?? r.nextDueAt ?? now
+      const idx = Math.min(r.currentCycle, REVIEW_INTERVALS.length - 1)
+      r.nextDueAt = beijingDayStart(base) + REVIEW_INTERVALS[idx] * DAY_MS
+    }
+    changed++
+  }
+  if (changed > 0) persist(records)
+  localStorage.setItem(MIGRATED_KEY, '1')
 }
 
 function persist(records: WrongRecord[]): void {

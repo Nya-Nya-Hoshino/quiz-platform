@@ -170,13 +170,13 @@ export interface WrongRecord {
   createdAt: number
   /** 最近一次用户答案 */
   lastAnswer?: UserAnswerValue
-  /** 已完成的回顾次数（0-4） */
+  /** 已完成的回顾次数（0-5） */
   reviewCount: number
-  /** 当前待完成周期下标（0-3，对应间隔 2/4/7/15 天） */
+  /** 当前待完成周期下标（0-4，对应间隔 1/2/4/7/15 天） */
   currentCycle: number
   /** 当前周期到期时间戳 */
   nextDueAt: number
-  /** 是否已熟练（完成全部 4 个周期） */
+  /** 是否已熟练（完成全部 5 个周期） */
   completed: boolean
   /** 上次回顾时间 */
   lastReviewedAt?: number
