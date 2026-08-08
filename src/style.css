@@ -189,14 +189,38 @@ body {
   font-size: 0.875rem;
 }
 
-/* ===== 明朝体（做题界面：题干/选项/文章） ===== */
+/* ===== 衬线体（做题界面 + 解析） =====
+ * 按字符范围分配：
+ *  - 英文/数字/标点 → Times New Roman（新罗马）
+ *  - 平假名/片假名 → Yu Mincho（日文明朝体）
+ *  - 汉字 → SimSun / Noto Serif CJK SC（中文宋体）
+ */
+@font-face {
+  font-family: "QuizSerif";
+  src: local("Times New Roman"), local("Liberation Serif"), local("Georgia");
+  unicode-range: U+0000-00FF, U+2000-206F, U+20AC, U+2190-21FF;
+}
+@font-face {
+  font-family: "QuizSerif";
+  src: local("Yu Mincho"), local("YuMincho"), local("Hiragino Mincho ProN"), local("MS Mincho");
+  unicode-range: U+3040-30FF, U+31F0-31FF, U+FF66-FF9F;
+}
+@font-face {
+  font-family: "QuizSerif";
+  src: local("SimSun"), local("Noto Serif CJK SC"), local("Source Han Serif SC"), local("Yu Mincho"), local("MS Mincho"), serif;
+  unicode-range: U+2E80-2EFF, U+3000-303F, U+3400-4DBF, U+4E00-9FFF;
+}
 .font-mincho,
 .font-mincho p,
 .font-mincho h3,
 .font-mincho button,
 .font-mincho span,
-.font-mincho label {
-  font-family: "Yu Mincho", "YuMincho", "Hiragino Mincho ProN",
-    "MS Mincho", "Noto Serif CJK JP", "Noto Serif CJK SC",
-    "Source Han Serif SC", "SimSun", serif;
+.font-mincho label,
+.font-mincho li,
+.font-mincho td,
+.font-mincho th,
+.font-mincho code,
+.font-mincho pre,
+.font-mincho blockquote {
+  font-family: "QuizSerif", "Yu Mincho", "SimSun", serif;
 }

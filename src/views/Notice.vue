@@ -72,7 +72,7 @@
           </li>
           <li class="flex items-start gap-2">
             <span class="mt-0.5 flex-shrink-0 rounded-sm bg-blue-100 px-1.5 py-0.5 text-xs text-blue-700">08-08</span>
-            <span class="text-gray-600"><b>错题订正</b>：N3 自主练习第 1-4 套答案与解析已全面核对订正（第 5/17/41/42/48/84/107/108/126/144/185/263/293/312/335/336/348/377/378/395/402/407/408/462/468/474/479/480/491/509/510/534/563/569/570/684/699/710 等题）</span>
+            <span class="text-gray-600"><b>错题订正</b>：N3 自主练习第 1-4 套答案与解析已全面核对订正</span>
           </li>
           <li class="flex items-start gap-2">
             <span class="mt-0.5 flex-shrink-0 rounded-sm bg-blue-100 px-1.5 py-0.5 text-xs text-blue-700">08-08</span>
