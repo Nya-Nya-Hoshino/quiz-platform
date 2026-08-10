@@ -76,7 +76,7 @@
           </li>
           <li class="flex items-start gap-2">
             <span class="mt-0.5 flex-shrink-0 rounded-sm bg-blue-100 px-1.5 py-0.5 text-xs text-blue-700">08-10</span>
-            <span class="text-gray-600"><b>账号实时同步</b>：登录后错题/收藏/历史/做题进度自动实时同步云端，多设备登录同一账号即可互通（A 设备做题，B 设备打开即可看到进度与错题）</span>
+            <span class="text-gray-600"><b>账号实时同步</b>：登录后错题/收藏/历史/做题进度自动实时同步云端，多设备登录同一账号即可互通（A 设备做题，B 设备打开即可看到进度与错题）；多设备登录互不踢出，退出登录不影响其他设备</span>
           </li>
           <li class="flex items-start gap-2">
             <span class="mt-0.5 flex-shrink-0 rounded-sm bg-blue-100 px-1.5 py-0.5 text-xs text-blue-700">08-08</span>

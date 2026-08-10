@@ -19,6 +19,7 @@ import {
   pushRemoteData,
   downloadBackup,
   triggerBackup,
+  logoutRemote,
   type SyncPayload,
 } from '../services/account'
 import { useWrongBookStore } from './wrongBook'
@@ -150,6 +151,8 @@ export const useAuthStore = defineStore('auth', () => {
 
   function logout(): void {
     stopAutoSync()
+    // 通知后端作废本设备 token（不影响其他设备登录态）
+    if (state.value) void logoutRemote(state.value.token)
     state.value = null
     persistAuth(null)
     lastSyncAt.value = 0

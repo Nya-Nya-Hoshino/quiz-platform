@@ -65,9 +65,11 @@ function verifyPassword(password, salt, hash) {
 
 function issueToken(username) {
   const tokens = loadTokens()
-  // 该用户已存在的 token 全部作废，重新签发
-  for (const [tok, u] of Object.entries(tokens)) {
-    if (u === username) delete tokens[tok]
+  // 多设备共存：每设备一个 token，登录不踢掉其他设备
+  // 但限制每用户最多 10 个活跃 token，超出时按 FIFO 淘汰最旧的
+  const userTokens = Object.entries(tokens).filter(([, u]) => u === username)
+  if (userTokens.length >= 10) {
+    delete tokens[userTokens[0][0]]
   }
   const token = randomBytes(32).toString('hex')
   tokens[token] = username
@@ -187,6 +189,15 @@ export async function handleAccountAPI(req, res, url) {
   const username = resolveToken(token)
   if (path.startsWith('/api/') && !username) {
     sendJson(res, 401, { error: '未登录或登录已过期' })
+    return true
+  }
+
+  // ===== 退出登录（作废当前 token，不影响其他设备） =====
+  if (method === 'POST' && path === '/api/logout') {
+    const tokens = loadTokens()
+    delete tokens[token]
+    saveTokens(tokens)
+    sendJson(res, 200, { ok: true })
     return true
   }
 

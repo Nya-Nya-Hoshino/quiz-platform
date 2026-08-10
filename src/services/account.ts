@@ -67,6 +67,18 @@ export async function pushRemoteData(token: string, payload: SyncPayload): Promi
   }
 }
 
+/** 退出登录：作废当前设备 token（不影响其他设备登录态） */
+export async function logoutRemote(token: string): Promise<void> {
+  try {
+    await fetch(`${API_BASE}/logout`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+    })
+  } catch {
+    /* 忽略：token 已失效也无妨 */
+  }
+}
+
 /** 下载全站备份文件（触发浏览器下载） */
 export async function downloadBackup(token: string): Promise<void> {
   const res = await fetch(`${API_BASE}/backup`, {
