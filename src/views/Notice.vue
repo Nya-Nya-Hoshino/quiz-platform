@@ -75,6 +75,10 @@
             <span class="text-gray-600"><b>新增错题总结</b>：错题本可按自定义日期区间，通过 AI 分析高频/反复错误点与难点，自动生成《错题知识点记背手册》（用法搭配、句型例句、词句解构、易混辨析、熟词生义）</span>
           </li>
           <li class="flex items-start gap-2">
+            <span class="mt-0.5 flex-shrink-0 rounded-sm bg-blue-100 px-1.5 py-0.5 text-xs text-blue-700">08-10</span>
+            <span class="text-gray-600"><b>账号实时同步</b>：登录后错题/收藏/历史/做题进度自动实时同步云端，多设备登录同一账号即可互通（A 设备做题，B 设备打开即可看到进度与错题）</span>
+          </li>
+          <li class="flex items-start gap-2">
             <span class="mt-0.5 flex-shrink-0 rounded-sm bg-blue-100 px-1.5 py-0.5 text-xs text-blue-700">08-08</span>
             <span class="text-gray-600"><b>进度保存</b>：练习/考试中途关闭页面后，再次打开自动恢复上次进度（含已答题目与位置），可一键重新开始</span>
           </li>
