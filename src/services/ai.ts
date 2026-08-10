@@ -487,3 +487,94 @@ export async function aiSuggestScores(
 
   return { scores, mock: false, error: failed > 0 ? lastError : undefined }
 }
+
+/* ==================== 错题本：错题总结（知识点记背手册） ==================== */
+
+/** 错题总结输入项 */
+export interface WrongSummaryItem {
+  section: string
+  type: string
+  question: string
+  prompt?: string
+  options?: string[]
+  answer: unknown
+  explanation?: string
+  /** 错误次数（回顾答错不增加，仅记录进入错题本的次数） */
+  wrongCount: number
+}
+
+/**
+ * 错题总结：对一段时间内的错题做知识点分析，生成《错题知识点记背手册》。
+ *
+ * - 按知识点聚类，识别高频/反复错误点与难点
+ * - 总结薄弱知识块
+ * - 输出适合背诵的手册：用法/搭配/惯用语、句型句式+例句、词句解构、核心语法块、
+ *   易混词汇语法辨析、熟词生义
+ *
+ * 未配置 AI 时返回 mock 示例，便于功能演示。
+ */
+export async function summarizeWrongQuestions(
+  items: WrongSummaryItem[],
+  periodText: string,
+): Promise<string> {
+  if (items.length === 0) {
+    throw new Error('该时间段内没有错题')
+  }
+  if (!isAIConfigured()) {
+    return mockWrongSummary(items, periodText)
+  }
+  const settings = loadAISettings()
+  const systemPrompt =
+    `你是资深日语 JLPT 教师与学习诊断专家。用户提供一段时间内的错题，请完成：\n` +
+    `1. 按知识点聚类，识别高频错误点、反复出错的点与难点\n` +
+    `2. 总结用户薄弱的知识块（如：动词活用不熟、助词混淆、N3 句型记忆模糊等）\n` +
+    `3. 输出一份适合背诵记忆的《错题知识点记背手册》，要求：\n` +
+    `   - 每个知识点：用法 / 搭配 / 惯用语、句型句式 + 例句（日语原句 + 中文）\n` +
+    `   - 对易错的词句进行解构剖析（词源/构成/读音易错点）\n` +
+    `   - 提炼核心语法块（接续、含义、使用场景）\n` +
+    `   - 容易混淆的词汇或语法（列表/表格对比辨析）\n` +
+    `   - 简单熟词却考了较生僻意思的（熟词生义）单独列出\n` +
+    `4. 用中文讲解为主，日语原句保留\n` +
+    `5. 使用 Markdown：### 分节、表格对比易混项、要点用 - 列表\n` +
+    `6. 若题量少（≤5），则逐题精讲，不强行归纳`
+  const userContent = JSON.stringify(
+    { 错题时间段: periodText, 错题列表: items },
+    null,
+    1,
+  )
+  const content = await chatCompletion(
+    [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userContent },
+    ],
+    settings.model,
+  )
+  const trimmed = content.trim()
+  if (!trimmed) throw new Error('AI 返回总结为空')
+  return trimmed
+}
+
+/** 未配置 AI 时的演示用 mock 总结 */
+function mockWrongSummary(items: WrongSummaryItem[], periodText: string): string {
+  const n = items.length
+  const lines = items
+    .slice(0, 5)
+    .map(
+      (it, i) =>
+        `${i + 1}. ${it.question.replace(/<u>|<\/u>/g, '')}` +
+        (it.explanation ? `\n   → ${it.explanation.replace(/\n/g, ' ').slice(0, 80)}` : ''),
+    )
+    .join('\n')
+  return (
+    `## 错题知识点记背手册（演示）\n\n` +
+    `**时间段**：${periodText} · **题量**：${n} 道\n\n` +
+    `> ⚠ 未配置 AI API（设置页填写端点与 Key 后自动启用真实总结）\n\n` +
+    `### 涉及错题\n\n${lines}\n\n` +
+    `### 薄弱知识块（示例）\n\n` +
+    `- 词汇读音中的浊音 / 清音辨析\n` +
+    `- 语法句型的接续与使用场景\n\n` +
+    `### 记忆建议（示例）\n\n` +
+    `- 先按知识点分类整理，再逐条背诵\n` +
+    `- 混淆项用对比表格强化区分`
+  )
+}

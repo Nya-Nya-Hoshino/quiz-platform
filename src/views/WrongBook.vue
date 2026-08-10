@@ -11,6 +11,8 @@ import { useRouter } from 'vue-router'
 import { useWrongBookStore } from '../stores/wrongBook'
 import { cycleLabel, dueLabel } from '../utils/review'
 import { QUESTION_TYPE_LABELS } from '../types/question'
+import { summarizeWrongQuestions, type WrongSummaryItem } from '../services/ai'
+import { renderMarkdown } from '../utils/markdown'
 
 const router = useRouter()
 const wrongBook = useWrongBookStore()
@@ -55,6 +57,69 @@ function clearAll(): void {
   if (records.value.length === 0) return
   if (window.confirm(`确定清空错题本（共 ${records.value.length} 道）吗？`)) {
     wrongBook.clear()
+  }
+}
+
+/* ===== 错题总结（AI 知识点分析 → 记背手册） ===== */
+const showSummary = ref(false)
+const sumStart = ref('')
+const sumEnd = ref('')
+const summing = ref(false)
+const sumResult = ref('')
+const sumError = ref('')
+
+/** 默认区间：最近 30 天 */
+function openSummary(): void {
+  showSummary.value = true
+  sumError.value = ''
+  sumResult.value = ''
+  if (!sumStart.value || !sumEnd.value) {
+    const now = new Date()
+    const ago = new Date(now.getTime() - 30 * 864e5)
+    const p = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    sumEnd.value = p(now)
+    sumStart.value = p(ago)
+  }
+}
+
+async function runSummary(): Promise<void> {
+  sumError.value = ''
+  sumResult.value = ''
+  if (!sumStart.value || !sumEnd.value) {
+    sumError.value = '请选择起止日期'
+    return
+  }
+  const startTs = new Date(`${sumStart.value}T00:00:00`).getTime()
+  const endTs = new Date(`${sumEnd.value}T23:59:59.999`).getTime()
+  if (startTs > endTs) {
+    sumError.value = '开始日期不能晚于结束日期'
+    return
+  }
+  // 按错题产生时间（createdAt）筛选，对区间内全部错题分析
+  const picked = wrongBook.records
+    .filter((r) => r.createdAt >= startTs && r.createdAt <= endTs)
+    .sort((a, b) => b.createdAt - a.createdAt)
+  if (picked.length === 0) {
+    sumError.value = '该时间段内没有错题'
+    return
+  }
+  const items: WrongSummaryItem[] = picked.map((r) => ({
+    section: r.snapshot.section,
+    type: r.snapshot.type,
+    question: r.snapshot.question,
+    prompt: r.snapshot.prompt,
+    options: r.snapshot.options,
+    answer: r.snapshot.answer,
+    explanation: r.snapshot.explanation,
+    wrongCount: r.wrongCount,
+  }))
+  summing.value = true
+  try {
+    sumResult.value = await summarizeWrongQuestions(items, `${sumStart.value} 至 ${sumEnd.value}`)
+  } catch (e) {
+    sumError.value = (e as Error).message || '总结生成失败'
+  } finally {
+    summing.value = false
   }
 }
 
@@ -154,6 +219,14 @@ function submitAdd(): void {
           <button
             v-if="records.length"
             type="button"
+            class="rounded-sm border border-violet-300 px-3 py-2 text-sm text-violet-600 hover:bg-violet-50"
+            @click="openSummary"
+          >
+            ✦ 错题总结
+          </button>
+          <button
+            v-if="records.length"
+            type="button"
             class="rounded-sm border border-red-200 px-3 py-2 text-sm text-red-500 hover:bg-red-50"
             @click="clearAll"
           >
@@ -161,6 +234,46 @@ function submitAdd(): void {
           </button>
         </div>
       </div>
+    </div>
+
+    <!-- 错题总结面板（AI 知识点分析 → 记背手册） -->
+    <div v-if="showSummary" class="mb-4 rounded-sm border border-violet-200 bg-white p-4">
+      <div class="mb-3 flex items-center justify-between">
+        <h2 class="text-sm font-semibold text-gray-900">✦ 错题总结 · 知识点记背手册</h2>
+        <button
+          type="button"
+          class="text-xs text-gray-400 hover:text-gray-600"
+          @click="showSummary = false"
+        >
+          收起 ✕
+        </button>
+      </div>
+      <div class="flex flex-wrap items-end gap-3">
+        <label class="flex flex-col gap-1 text-xs text-gray-500">
+          开始日期
+          <input v-model="sumStart" type="date" class="rounded-sm border border-gray-300 px-2 py-1.5 text-sm text-gray-800" />
+        </label>
+        <label class="flex flex-col gap-1 text-xs text-gray-500">
+          结束日期
+          <input v-model="sumEnd" type="date" class="rounded-sm border border-gray-300 px-2 py-1.5 text-sm text-gray-800" />
+        </label>
+        <button
+          type="button"
+          class="rounded-sm bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-700 disabled:opacity-50"
+          :disabled="summing"
+          @click="runSummary"
+        >
+          {{ summing ? '生成中…' : '生成总结' }}
+        </button>
+      </div>
+      <p v-if="sumError" class="mt-3 text-sm text-red-500">{{ sumError }}</p>
+      <p v-if="summing" class="mt-3 text-sm text-gray-400">AI 正在分析错题知识点，请稍候（约 20-60 秒）…</p>
+      <!-- 总结结果（Markdown 渲染） -->
+      <div
+        v-if="sumResult"
+        class="md-body mt-4 max-h-[28rem] overflow-y-auto rounded-sm border border-violet-100 bg-violet-50/30 p-4 text-sm leading-6 text-gray-800"
+        v-html="renderMarkdown(sumResult)"
+      />
     </div>
 
     <!-- 错题列表 -->
