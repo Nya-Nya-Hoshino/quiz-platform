@@ -7,10 +7,11 @@
  * 同步策略：
  * - 登录成功后自动拉取云端数据；云端为空 → 自动上传本地（首次兼容浏览器旧缓存）
  * - 云端有数据 → 覆盖本地（云端为准）
+ * - **实时自动同步**：登录后数据变化（错题/收藏/历史/进度）自动上传云端（watch 深度监听 + 定时 hash 兜底）
  * - 手动：上传本地 / 拉取云端 / 备份
  */
 import { defineStore } from 'pinia'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import {
   register as apiRegister,
   login as apiLogin,
@@ -23,6 +24,7 @@ import {
 import { useWrongBookStore } from './wrongBook'
 import { useFavoriteStore } from './favorites'
 import { useHistoryStore } from './history'
+import { usePracticeStore } from './practice'
 
 const AUTH_KEY = 'quiz-platform:auth'
 const PROGRESS_PREFIX = 'quiz-platform:progress'
@@ -127,6 +129,7 @@ export const useAuthStore = defineStore('auth', () => {
       persistAuth(state.value)
       // 首次注册：云端为空 → 上传本地缓存（兼容旧浏览器数据）
       await pushRemoteData(r.token, collectPayload())
+      startAutoSync()
     } finally {
       busy.value = false
     }
@@ -139,15 +142,88 @@ export const useAuthStore = defineStore('auth', () => {
       state.value = { token: r.token, username: r.username, savedAt: 0 }
       persistAuth(state.value)
       await syncFromCloud()
+      startAutoSync()
     } finally {
       busy.value = false
     }
   }
 
   function logout(): void {
+    stopAutoSync()
     state.value = null
     persistAuth(null)
     lastSyncAt.value = 0
+  }
+
+  /* ===== 实时自动同步 ===== */
+  let autoSyncOn = false
+  let syncTimer: number | undefined
+  let watchRegistered = false
+  let lastHash = ''
+  let debounceTimer: number | undefined
+
+  /** 本地数据快照 hash（用于定时兜底比对） */
+  function dataHash(): string {
+    try {
+      return JSON.stringify(collectPayload())
+    } catch {
+      return ''
+    }
+  }
+
+  /** 防抖后的自动上传（仅登录态） */
+  async function syncSoon(): Promise<void> {
+    if (!state.value || !autoSyncOn) return
+    if (debounceTimer) window.clearTimeout(debounceTimer)
+    debounceTimer = window.setTimeout(async () => {
+      if (!state.value || !autoSyncOn || busy.value) return
+      try {
+        await pushRemoteData(state.value.token, collectPayload())
+        lastSyncAt.value = Date.now()
+        lastHash = dataHash()
+      } catch {
+        /* 网络失败忽略，下轮重试 */
+      }
+    }, 3000)
+  }
+
+  /** 登录后开启：数据变化实时上传（watch 深度监听）+ 定时 hash 兜底 */
+  function startAutoSync(): void {
+    autoSyncOn = true
+    lastHash = dataHash()
+    // watch 只注册一次（store 为单例）
+    if (!watchRegistered) {
+      watchRegistered = true
+      const practice = usePracticeStore()
+      watch(
+        () => [
+          useWrongBookStore().records,
+          useFavoriteStore().records,
+          useHistoryStore().records,
+          practice.states,
+          practice.daily,
+        ],
+        () => {
+          if (autoSyncOn && state.value) void syncSoon()
+        },
+        { deep: true },
+      )
+    }
+    // 定时兜底：直接写入 localStorage 的数据（如进度存档）也能同步
+    if (!syncTimer) {
+      syncTimer = window.setInterval(() => {
+        if (!autoSyncOn || !state.value) return
+        if (dataHash() !== lastHash) void syncSoon()
+      }, 15000)
+    }
+  }
+
+  function stopAutoSync(): void {
+    autoSyncOn = false
+    if (syncTimer) {
+      window.clearInterval(syncTimer)
+      syncTimer = undefined
+    }
   }
 
   /** 从云端拉取并写入本地；云端为空则上传本地 */
@@ -214,5 +290,7 @@ export const useAuthStore = defineStore('auth', () => {
     pullCloud,
     backup,
     downloadBackupFile,
+    startAutoSync,
+    stopAutoSync,
   }
 })

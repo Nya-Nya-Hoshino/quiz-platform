@@ -6,6 +6,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { usePracticeStore } from '../stores/practice'
+import { useAuthStore } from '../stores/auth'
 import { useAIExplainStore } from '../stores/aiExplain'
 import { findQuestion, findReadingGroup } from '../utils/parser'
 import { hasProgress as hasSavedProgress, loadProgress, clearProgress } from '../utils/progress'
@@ -31,6 +32,15 @@ const resumeInfo = ref({ index: 0, total: 0, answered: 0 })
 const restarting = ref(false)
 
 onMounted(async () => {
+  // 跨设备实时同步：登录状态下先拉取云端最新（其他设备的数据/进度/错题同步到本机）
+  const auth = useAuthStore()
+  if (auth.isLoggedIn) {
+    try {
+      await auth.syncFromCloud()
+    } catch {
+      /* 拉取失败忽略，使用本地数据 */
+    }
+  }
   const id = route.params.id as string
   if (!practice.exam || practice.exam.id !== id) {
     const hadSaved = hasSavedProgress('practice', id) // start 前检测（直接读 localStorage）

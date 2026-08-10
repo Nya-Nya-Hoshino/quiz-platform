@@ -2,12 +2,25 @@
 /**
  * 收藏本：查看收藏的题目，勾选后组成一份练习进行练习
  */
-import { computed, ref } from 'vue'
+import { computed,  ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useFavoriteStore } from '../stores/favorites'
+import { useAuthStore } from '../stores/auth'
 import { usePracticeStore } from '../stores/practice'
 
 const fav = useFavoriteStore()
+
+/** 跨设备实时同步：登录状态下拉取云端最新（其他设备的错题/收藏/历史同步到本机） */
+onMounted(async () => {
+  const auth = useAuthStore()
+  if (auth.isLoggedIn) {
+    try {
+      await auth.syncFromCloud()
+    } catch {
+      /* 拉取失败忽略 */
+    }
+  }
+})
 const practice = usePracticeStore()
 const router = useRouter()
 

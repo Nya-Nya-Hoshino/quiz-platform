@@ -2,10 +2,23 @@
 /**
  * 历史记录页
  */
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useHistoryStore } from '../stores/history'
+import { useAuthStore } from '../stores/auth'
 
 const history = useHistoryStore()
+
+/** 跨设备实时同步：登录状态下拉取云端最新（其他设备的错题/收藏/历史同步到本机） */
+onMounted(async () => {
+  const auth = useAuthStore()
+  if (auth.isLoggedIn) {
+    try {
+      await auth.syncFromCloud()
+    } catch {
+      /* 拉取失败忽略 */
+    }
+  }
+})
 
 const records = computed(() => history.records)
 

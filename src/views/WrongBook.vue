@@ -6,9 +6,10 @@
  * 点击任意错题 → 进入单题练习页（/wrong/:id）。
  * 支持：删除单条 / 清空 / 自由手动添加错题。
  */
-import { computed, reactive, ref } from 'vue'
+import { computed,  reactive,  ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useWrongBookStore } from '../stores/wrongBook'
+import { useAuthStore } from '../stores/auth'
 import { cycleLabel, dueLabel } from '../utils/review'
 import { QUESTION_TYPE_LABELS } from '../types/question'
 import { summarizeWrongQuestions, type WrongSummaryItem } from '../services/ai'
@@ -16,6 +17,18 @@ import { renderMarkdown } from '../utils/markdown'
 
 const router = useRouter()
 const wrongBook = useWrongBookStore()
+
+/** 跨设备实时同步：登录状态下拉取云端最新（其他设备的错题/收藏/历史同步到本机） */
+onMounted(async () => {
+  const auth = useAuthStore()
+  if (auth.isLoggedIn) {
+    try {
+      await auth.syncFromCloud()
+    } catch {
+      /* 拉取失败忽略 */
+    }
+  }
+})
 
 /** 列表：未熟练在前，按到期时间排序 */
 const records = computed(() =>
