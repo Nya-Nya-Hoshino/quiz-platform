@@ -124,7 +124,10 @@ export async function fetchExamList(): Promise<{ id: string; title: string; time
 /** 获取完整试卷 */
 export async function fetchExam(examId: string): Promise<Exam> {
   if (apiConfig.mode === 'local') {
-    const meta = examManifest.exams.find((e) => String(e.id) === String(examId))
+    // 兼容数字别名：/practice/1 → user-1（早期第1-4套 id 为 user-N）
+    const aliasMap: Record<string, string> = { '1': 'user-1', '2': 'user-2', '3': 'user-3', '4': 'user-4' }
+    const lookupId = aliasMap[String(examId)] ?? String(examId)
+    const meta = examManifest.exams.find((e) => String(e.id) === lookupId)
     if (!meta) {
       throw new Error(`未找到试卷: ${examId}`)
     }

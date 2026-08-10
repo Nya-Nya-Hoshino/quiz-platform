@@ -47,6 +47,7 @@ const navItems = [
   { path: '/jlpt', label: 'JLPT 真题' },
   { path: '/history', label: '历史记录' },
   { path: '/wrong-book', label: '错题本' },
+  { path: '/favorites', label: '收藏本' },
   { path: '/settings', label: '设置' },
 ]
 

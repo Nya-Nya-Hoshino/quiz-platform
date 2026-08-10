@@ -52,7 +52,18 @@ async function restartPractice(): Promise<void> {
   practice.discardProgress()
   try {
     const id = route.params.id as string
-    await practice.startPractice(id, false)
+    if (id === 'favorites') {
+      // 收藏练习：用最近一次「组成练习」的数据重新加载
+      const favStore = (await import('../stores/favorites')).useFavoriteStore()
+      if (favStore.lastRaw) {
+        await practice.startPracticeWithRaw(favStore.lastRaw, false)
+      } else {
+        router.replace('/favorites')
+        return
+      }
+    } else {
+      await practice.startPractice(id, false)
+    }
     restored.value = false
   } finally {
     restarting.value = false

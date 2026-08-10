@@ -103,7 +103,7 @@ export const usePracticeStore = defineStore('practice', () => {
     error.value = ''
     try {
       const { parseExamRaw } = await import('../utils/parser')
-      const rawWithId = { ...raw, testId: 'auto' }
+      const rawWithId = { ...raw, testId: raw.testId ?? 'auto' }
       const e = parseExamRaw(rawWithId)
       exam.value = e
       refs.value = buildQuestionRefs(e)

@@ -154,6 +154,8 @@ export interface WrongQuestionSnapshot {
   passage?: string
   /** 分值 */
   score: number
+  /** ★ 排序题：★ 所在横线位置（1-4） */
+  starIndex?: number
 }
 
 /** 错题记录条目（持久化到 localStorage） */

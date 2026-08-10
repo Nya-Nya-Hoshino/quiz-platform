@@ -34,6 +34,7 @@ export function toSnapshot(
     explanation: question.explanation,
     passage: opts?.passage ?? (question.isReadingChild ? undefined : undefined),
     score: question.score,
+    ...(question.starIndex != null ? { starIndex: question.starIndex } : {}),
   }
 }
 
@@ -52,6 +53,7 @@ export function snapshotToQuestion(snapshot: WrongQuestionSnapshot, questionId: 
     explanation: snapshot.explanation,
     isReadingChild: Boolean(snapshot.passage),
     passageId: snapshot.passage ? 'snapshot' : undefined,
+    ...(snapshot.starIndex != null ? { starIndex: snapshot.starIndex } : {}),
   }
 }
 

@@ -64,6 +64,12 @@ const router = createRouter({
       meta: { title: '错题本' },
     },
     {
+      path: '/favorites',
+      name: 'favorites',
+      component: () => import('../views/Favorites.vue'),
+      meta: { title: '收藏本' },
+    },
+    {
       path: '/wrong/:id',
       name: 'wrong-review',
       component: () => import('../views/WrongReview.vue'),

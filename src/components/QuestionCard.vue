@@ -6,6 +6,9 @@
 import { computed } from 'vue'
 import type { Question } from '../types/question'
 import { JUDGE_OPTIONS } from '../types/question'
+import { useFavoriteStore } from '../stores/favorites'
+
+const favStore = useFavoriteStore()
 
 const props = defineProps<{
   question: Question
@@ -112,7 +115,17 @@ function handleFillInput(i: number, e: Event): void {
       <span class="mt-0.5 inline-flex h-5 flex-shrink-0 items-center rounded-sm bg-gray-100 px-1.5 text-xs font-medium text-gray-600">
         {{ question.type === 'single_choice' && question.isReadingChild ? '阅读' : question.type === 'single_choice' ? '单选' : question.type === 'multiple_choice' ? '多选' : question.type === 'judge' ? '判断' : question.type === 'fill_blank' ? '填空' : question.type === 'sorting' ? '排序' : '简答' }}
       </span>
-      <h3 class="text-base font-medium leading-7 text-gray-900" v-html="questionHtml" />
+      <h3 class="flex-1 text-base font-medium leading-7 text-gray-900" v-html="questionHtml" />
+      <!-- 收藏按钮 -->
+      <button
+        type="button"
+        class="mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-lg leading-none transition-colors"
+        :class="favStore.isFavorite(question.id) ? 'text-amber-400 hover:text-amber-500' : 'text-gray-300 hover:text-amber-400'"
+        :title="favStore.isFavorite(question.id) ? '取消收藏' : '收藏本题'"
+        @click.stop="favStore.toggleFavorite(question)"
+      >
+        <span>{{ favStore.isFavorite(question.id) ? '★' : '☆' }}</span>
+      </button>
     </div>
 
     <!-- 提示（如：下線部の読み方はどれですか。） -->
