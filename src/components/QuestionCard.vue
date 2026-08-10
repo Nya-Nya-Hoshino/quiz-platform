@@ -121,8 +121,8 @@ function handleFillInput(i: number, e: Event): void {
         type="button"
         class="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md border text-base leading-none transition-all"
         :class="favStore.isFavorite(question.id)
-          ? 'border-amber-400 bg-amber-400 text-white shadow-sm hover:bg-amber-500'
-          : 'border-gray-200 bg-white text-gray-300 hover:border-amber-400 hover:bg-amber-50 hover:text-amber-500'"
+          ? 'border-amber-500 bg-amber-500 text-white shadow-sm hover:bg-amber-600'
+          : 'border-amber-300 bg-amber-100 text-amber-500 hover:bg-amber-200 hover:text-amber-600'"
         :title="favStore.isFavorite(question.id) ? '取消收藏' : '收藏本题'"
         @click.stop="favStore.toggleFavorite(question)"
       >
