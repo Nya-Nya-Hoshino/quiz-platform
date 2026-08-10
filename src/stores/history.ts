@@ -79,5 +79,11 @@ export const useHistoryStore = defineStore('history', () => {
     persist(records.value)
   }
 
-  return { records, total, addFromResult, addRecord, byExam, remove, clear }
+  /** 从云端/外部加载整组记录（覆盖本地并持久化） */
+  function hydrate(loaded: HistoryRecord[]): void {
+    records.value = Array.isArray(loaded) ? loaded.slice(0, MAX_RECORDS) : []
+    persist(records.value)
+  }
+
+  return { records, total, addFromResult, addRecord, byExam, remove, clear, hydrate }
 })

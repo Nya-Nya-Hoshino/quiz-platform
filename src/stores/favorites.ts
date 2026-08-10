@@ -83,6 +83,12 @@ export const useFavoriteStore = defineStore('favorites', () => {
     return snapshotToQuestionUtil(snapshot, questionId)
   }
 
+  /** 从云端/外部加载整组记录（覆盖本地并持久化） */
+  function hydrate(loaded: FavoriteRecord[]): void {
+    records.value = Array.isArray(loaded) ? loaded : []
+    persist(records.value)
+  }
+
   return {
     records,
     total,
@@ -91,6 +97,7 @@ export const useFavoriteStore = defineStore('favorites', () => {
     removeFavorite,
     clear,
     snapshotToQuestion,
+    hydrate,
     get lastRaw(): Record<string, unknown> | null { return lastRaw },
     set lastRaw(v: Record<string, unknown> | null) { lastRaw = v },
   }

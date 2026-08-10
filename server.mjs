@@ -6,6 +6,7 @@ import { createServer } from 'node:http'
 import { readFile, stat } from 'node:fs/promises'
 import { join, extname, normalize, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { handleAccountAPI } from './server-account.mjs'
 
 const ROOT = fileURLToPath(new URL('./dist/', import.meta.url))
 const PORT = process.env.PORT || 8080
@@ -94,6 +95,11 @@ const gzipCache = new Map()
 const server = createServer(async (req, res) => {
   try {
     const url = new URL(req.url, 'http://x')
+    // 账号与数据同步 API（注册/登录/同步/备份）
+    if (url.pathname.startsWith('/api/')) {
+      const handled = await handleAccountAPI(req, res, url)
+      if (handled) return
+    }
     // AI 代理路由
     if (url.pathname === '/api/ai/chat') {
       await handleAIProxy(req, res)

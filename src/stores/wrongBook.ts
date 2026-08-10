@@ -231,8 +231,14 @@ export const useWrongBookStore = defineStore('wrongBook', () => {
     return records.value.find((r) => r.questionId === questionId)
   }
 
+  /** 从云端/外部加载整组记录（覆盖本地并持久化） */
+  function hydrate(loaded: WrongRecord[]): void {
+    records.value = Array.isArray(loaded) ? loaded : []
+    persist(records.value)
+  }
+
   return {
     records, total, dueReviews, masteredCount,
-    recordWrong, addCustom, submitReview, remove, clear, isWrong, findRecord,
+    recordWrong, addCustom, submitReview, remove, clear, isWrong, findRecord, hydrate,
   }
 })

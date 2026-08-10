@@ -29,3 +29,6 @@ pdf to png/
 out.py
 __pycache__/
 *.pyc
+
+# 用户数据（账号/同步/备份）—— 严禁入库
+data/

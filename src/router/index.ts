@@ -70,6 +70,12 @@ const router = createRouter({
       meta: { title: '收藏本' },
     },
     {
+      path: '/account',
+      name: 'account',
+      component: () => import('../views/Account.vue'),
+      meta: { title: '账号中心' },
+    },
+    {
       path: '/wrong/:id',
       name: 'wrong-review',
       component: () => import('../views/WrongReview.vue'),

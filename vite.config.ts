@@ -45,7 +45,14 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       port: 5173,
-      proxy,
+      proxy: {
+        ...proxy,
+        // 账号与数据同步 API → 生产后端（server.mjs :8080）
+        '/api/register': { target: 'http://localhost:8080', changeOrigin: true },
+        '/api/login': { target: 'http://localhost:8080', changeOrigin: true },
+        '/api/data': { target: 'http://localhost:8080', changeOrigin: true },
+        '/api/backup': { target: 'http://localhost:8080', changeOrigin: true },
+      },
     },
   }
 })

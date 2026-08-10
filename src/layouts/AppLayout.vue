@@ -39,13 +39,57 @@ function finishProgress(): void {
   }, FINISH_DELAY)
 }
 router.beforeEach(startProgress)
-router.afterEach(finishProgress)
+/** 防白屏兜底：路由切换/返回完成后若应用内容区为空（二级页返回偶发），静默刷新一次 */
+router.afterEach(() => {
+  finishProgress()
+  window.setTimeout(() => {
+    const app = document.getElementById('app')
+    const view = document.getElementById('view-container')
+    if (!app) return
+    // 内容区空白判定：应用已挂载（导航栏在）但视图容器无任何渲染内容
+    const appBlank = app.children.length === 0 && !app.innerHTML.trim()
+    const viewBlank =
+      !appBlank &&
+      view != null &&
+      view.children.length === 0 &&
+      !view.innerText?.trim()
+    // 每次会话只兜底一次，避免反复刷新死循环
+    const fixed = sessionStorage.getItem('quiz-blank-fix')
+    if ((appBlank || viewBlank) && !fixed) {
+      sessionStorage.setItem('quiz-blank-fix', '1')
+      window.location.reload()
+    }
+  }, 500)
+})
+
+/** bfcache 恢复（浏览器后退/前进从缓存恢复页面）时静默刷新，修复返回后内容空白 */
+if (typeof window !== 'undefined') {
+  window.addEventListener('pageshow', (e: PageTransitionEvent) => {
+    if (e.persisted) window.location.reload()
+  })
+}
+
+/** 页面重新可见（切回标签页/窗口）时检测白屏并静默刷新 */
+if (typeof document !== 'undefined') {
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'visible') return
+    window.setTimeout(() => {
+      const app = document.getElementById('app')
+      const fixed = sessionStorage.getItem('quiz-blank-fix')
+      if (app && app.children.length === 0 && !fixed) {
+        sessionStorage.setItem('quiz-blank-fix', '1')
+        window.location.reload()
+      }
+    }, 300)
+  })
+}
 onBeforeUnmount(() => window.clearInterval(progressTimer))
 
 const navItems = [
   { path: '/', label: '题库' },
   { path: '/jlpt', label: 'JLPT 真题' },
   { path: '/history', label: '历史记录' },
+  { path: '/account', label: '账号' },
   { path: '/wrong-book', label: '错题本' },
   { path: '/favorites', label: '收藏本' },
   { path: '/settings', label: '设置' },
@@ -94,9 +138,9 @@ const wrongCount = computed(() => wrongBook.total)
 
     <!-- 内容区 + 侧边栏 -->
     <div class="mx-auto flex w-full max-w-6xl flex-1 gap-6 px-4 py-6">
-      <main class="min-w-0 flex-1">
+      <main id="view-container" class="min-w-0 flex-1">
         <router-view v-slot="{ Component }">
-          <transition name="page" mode="out-in">
+          <transition name="page">
             <component :is="Component" :key="route.path" />
           </transition>
         </router-view>

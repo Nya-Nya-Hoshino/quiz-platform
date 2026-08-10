@@ -8,7 +8,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { usePracticeStore } from '../stores/practice'
 import { useAIExplainStore } from '../stores/aiExplain'
 import { findQuestion, findReadingGroup } from '../utils/parser'
-import { hasProgress as hasSavedProgress } from '../utils/progress'
+import { hasProgress as hasSavedProgress, loadProgress, clearProgress } from '../utils/progress'
 import ExamProgress from '../components/ExamProgress.vue'
 import QuestionCard from '../components/QuestionCard.vue'
 import AnswerPanel from '../components/AnswerPanel.vue'
@@ -25,8 +25,9 @@ const aiContext = ref('')
 const aiIsWrong = ref(false)
 const lastFeedback = ref<{ isCorrect: boolean } | null>(null)
 
-/** 是否有可恢复的存档（进入时检测，提示用户） */
-const restored = ref(false)
+/** 重做系统：进入练习时若有存档，弹出选择（继续上次 / 重头开始） */
+const showResume = ref(false)
+const resumeInfo = ref({ index: 0, total: 0, answered: 0 })
 const restarting = ref(false)
 
 onMounted(async () => {
@@ -34,40 +35,39 @@ onMounted(async () => {
   if (!practice.exam || practice.exam.id !== id) {
     const hadSaved = hasSavedProgress('practice', id) // start 前检测（直接读 localStorage）
     try {
+      if (hadSaved) {
+        // 有存档：先清掉，默认从头开始，弹窗让用户选择是否恢复
+        clearProgress('practice', id)
+      }
       await practice.startPractice(id, false)
       if (hadSaved) {
-      restored.value = true
-      // 提示仅显示 1.2s 后自动隐藏
-      window.setTimeout(() => (restored.value = false), 1200)
-    }
+        // 读取存档摘要（进度位置/已答题数）用于弹窗展示
+        const saved = loadProgress<{
+          currentIndex: number
+          states: Record<string, unknown>
+        }>('practice', id)
+        resumeInfo.value = {
+          index: (saved?.payload.currentIndex ?? 0) + 1,
+          total: practice.total,
+          answered: Object.keys(saved?.payload.states ?? {}).length,
+        }
+        showResume.value = true
+      }
     } catch {
       router.replace('/')
     }
   }
 })
 
-/** 重新开始：丢弃存档并重新加载 */
-async function restartPractice(): Promise<void> {
-  restarting.value = true
-  practice.discardProgress()
-  try {
-    const id = route.params.id as string
-    if (id === 'favorites') {
-      // 收藏练习：用最近一次「组成练习」的数据重新加载
-      const favStore = (await import('../stores/favorites')).useFavoriteStore()
-      if (favStore.lastRaw) {
-        await practice.startPracticeWithRaw(favStore.lastRaw, false)
-      } else {
-        router.replace('/favorites')
-        return
-      }
-    } else {
-      await practice.startPractice(id, false)
-    }
-    restored.value = false
-  } finally {
-    restarting.value = false
-  }
+/** 弹窗：继续上次进度 */
+function continueLastProgress(): void {
+  showResume.value = false
+  practice.restoreFromSaved(route.params.id as string)
+}
+
+/** 弹窗：重头开始（当前已是重头状态，直接关闭） */
+function restartFromScratch(): void {
+  showResume.value = false
 }
 
 const currentQuestion = computed(() => {
@@ -189,24 +189,38 @@ function finishPractice(): void {
       </div>
     </div>
 
-    <!-- 恢复进度提示 -->
+    <!-- 重做系统弹窗：继续上次 / 重头开始 -->
     <div
-      v-if="restored && !restarting"
-      class="mb-4 flex items-center justify-between rounded-sm border border-amber-200 bg-amber-50 px-4 py-2.5"
+      v-if="showResume"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4"
+      @click.self="continueLastProgress"
     >
-      <p class="text-sm text-amber-800">
-        <b>已恢复上次进度</b>
-        · 上次做到第 {{ practice.currentIndex + 1 }} / {{ practice.total }} 题
-      </p>
-      <button
-        type="button"
-        class="flex-shrink-0 rounded-sm border border-amber-300 px-2.5 py-1 text-xs text-amber-700 hover:bg-amber-100"
-        @click="restartPractice"
-      >
-        重新开始
-      </button>
+      <div class="w-full max-w-sm rounded-md border border-gray-200 bg-white p-5 shadow-lg">
+        <h2 class="text-base font-semibold text-gray-900">检测到上次进度</h2>
+        <p class="mt-1.5 text-sm text-gray-500">
+          上次做到第 <b class="text-gray-800">{{ resumeInfo.index }}</b> /
+          {{ resumeInfo.total }} 题（已答 {{ resumeInfo.answered }} 题）。
+          想如何继续？
+        </p>
+        <div class="mt-4 flex flex-col gap-2">
+          <button
+            type="button"
+            class="w-full rounded-sm bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700"
+            @click="continueLastProgress"
+          >
+            继续上次进度
+          </button>
+          <button
+            type="button"
+            class="w-full rounded-sm border border-gray-300 px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50"
+            @click="restartFromScratch"
+          >
+            重头开始
+          </button>
+        </div>
+        <p v-if="restarting" class="mt-3 text-center text-xs text-gray-400">正在重新加载…</p>
+      </div>
     </div>
-    <div v-else-if="restarting" class="mb-4 text-xs text-gray-400">正在重新加载…</div>
 
     <!-- 进度 -->
     <div class="mb-4 rounded-sm border border-gray-200 bg-white p-4">
