@@ -32,14 +32,13 @@ onMounted(async () => {
 
 /** 排序模式：due = 距离回顾天数（现有，默认）；cycle = 回顾周期 */
 const SORT_KEY = 'quiz-platform:wrongbook-sort'
-const sortMode = ref<'due' | 'cycle'>(() => {
-  try {
-    const v = localStorage.getItem(SORT_KEY)
-    return v === 'cycle' ? 'cycle' : 'due'
-  } catch {
-    return 'due'
-  }
-}())
+const sortMode = ref<'due' | 'cycle'>('due')
+try {
+  const v = localStorage.getItem(SORT_KEY)
+  if (v === 'cycle') sortMode.value = 'cycle'
+} catch {
+  /* ignore */
+}
 function setSort(mode: 'due' | 'cycle'): void {
   sortMode.value = mode
   try {
