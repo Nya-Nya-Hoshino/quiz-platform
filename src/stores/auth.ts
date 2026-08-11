@@ -121,6 +121,19 @@ export const useAuthStore = defineStore('auth', () => {
 
   const isLoggedIn = computed(() => Boolean(state.value?.token))
   const username = computed(() => state.value?.username ?? '')
+  /** token 是否已被后端判定失效（登录过期） */
+  const tokenInvalid = ref(false)
+
+  /** 静默校验登录态：打开页面时调一次，401 则标记 tokenInvalid（不自动登出，提示重新登录） */
+  async function validateToken(): Promise<void> {
+    if (!state.value) return
+    try {
+      await fetchRemoteData(state.value.token)
+      tokenInvalid.value = false
+    } catch {
+      tokenInvalid.value = true
+    }
+  }
 
   async function register(usernameInput: string, password: string): Promise<void> {
     busy.value = true
@@ -295,5 +308,7 @@ export const useAuthStore = defineStore('auth', () => {
     downloadBackupFile,
     startAutoSync,
     stopAutoSync,
+    validateToken,
+    tokenInvalid,
   }
 })

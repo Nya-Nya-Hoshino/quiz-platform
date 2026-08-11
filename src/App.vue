@@ -8,7 +8,10 @@ import { useAuthStore } from './stores/auth'
 
 onMounted(() => {
   const auth = useAuthStore()
-  if (auth.isLoggedIn) auth.startAutoSync()
+  if (auth.isLoggedIn) {
+    auth.startAutoSync()
+    void auth.validateToken()
+  }
 })
 </script>
 

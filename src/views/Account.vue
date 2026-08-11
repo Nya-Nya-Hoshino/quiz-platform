@@ -108,6 +108,12 @@ const localStats = computed(() => ({
     <!-- ===== 已登录 ===== -->
     <div v-if="auth.isLoggedIn" class="rounded-sm border border-gray-200 bg-white p-6">
       <h1 class="text-lg font-semibold text-gray-900">账号中心</h1>
+      <div
+        v-if="auth.tokenInvalid"
+        class="mb-3 rounded-sm border border-orange-200 bg-orange-50 px-3 py-2 text-sm text-orange-700"
+      >
+        登录状态已过期，数据同步已暂停。请<b class="font-semibold">退出后重新登录</b>以恢复同步。
+      </div>
       <p class="mt-1 text-sm text-gray-400">
         已登录：<b class="text-gray-700">{{ auth.username }}</b>
         <span class="ml-2 text-xs text-gray-400">最近同步 {{ auth.lastSyncAt ? new Date(auth.lastSyncAt).toLocaleString() : '—' }}</span>

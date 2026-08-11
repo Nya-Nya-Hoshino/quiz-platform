@@ -66,9 +66,9 @@ function verifyPassword(password, salt, hash) {
 function issueToken(username) {
   const tokens = loadTokens()
   // 多设备共存：每设备一个 token，登录不踢掉其他设备
-  // 但限制每用户最多 10 个活跃 token，超出时按 FIFO 淘汰最旧的
+  // 限制每用户最多 50 个活跃 token（长期保留各设备登录态），超出时按 FIFO 淘汰最旧的
   const userTokens = Object.entries(tokens).filter(([, u]) => u === username)
-  if (userTokens.length >= 10) {
+  if (userTokens.length >= 50) {
     delete tokens[userTokens[0][0]]
   }
   const token = randomBytes(32).toString('hex')
