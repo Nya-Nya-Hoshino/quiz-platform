@@ -30,13 +30,44 @@ onMounted(async () => {
   }
 })
 
-/** 列表：未熟练在前，按到期时间排序 */
-const records = computed(() =>
-  [...wrongBook.records].sort((a, b) => {
-    if (a.completed !== b.completed) return a.completed ? 1 : -1
-    return a.nextDueAt - b.nextDueAt
-  }),
-)
+/** 排序模式：due = 距离回顾天数（现有，默认）；cycle = 回顾周期 */
+const SORT_KEY = 'quiz-platform:wrongbook-sort'
+const sortMode = ref<'due' | 'cycle'>(() => {
+  try {
+    const v = localStorage.getItem(SORT_KEY)
+    return v === 'cycle' ? 'cycle' : 'due'
+  } catch {
+    return 'due'
+  }
+}())
+function setSort(mode: 'due' | 'cycle'): void {
+  sortMode.value = mode
+  try {
+    localStorage.setItem(SORT_KEY, mode)
+  } catch {
+    /* ignore */
+  }
+}
+
+/** 列表：未熟练在前；due = 按下次回顾时间升序；cycle = 按回顾周期（0→4）升序，同周期按到期时间 */
+const records = computed(() => {
+  const arr = [...wrongBook.records]
+  if (sortMode.value === 'cycle') {
+    arr.sort((a, b) => {
+      if (a.completed !== b.completed) return a.completed ? 1 : -1
+      const ca = a.currentCycle ?? 0
+      const cb = b.currentCycle ?? 0
+      if (ca !== cb) return ca - cb
+      return a.nextDueAt - b.nextDueAt
+    })
+  } else {
+    arr.sort((a, b) => {
+      if (a.completed !== b.completed) return a.completed ? 1 : -1
+      return a.nextDueAt - b.nextDueAt
+    })
+  }
+  return arr
+})
 
 const dueCount = computed(() => wrongBook.dueReviews.length)
 const masteredCount = computed(() => wrongBook.masteredCount)
@@ -290,6 +321,26 @@ function submitAdd(): void {
     </div>
 
     <!-- 错题列表 -->
+    <div v-if="records.length" class="mb-2 flex items-center gap-1.5 text-xs text-gray-500">
+      <span>排序：</span>
+      <button
+        type="button"
+        class="rounded-sm px-2 py-1 transition-colors"
+        :class="sortMode === 'due' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
+        @click="setSort('due')"
+      >
+        距离回顾天数
+      </button>
+      <button
+        type="button"
+        class="rounded-sm px-2 py-1 transition-colors"
+        :class="sortMode === 'cycle' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
+        @click="setSort('cycle')"
+      >
+        回顾周期
+      </button>
+      <span class="ml-1 text-gray-400">{{ records.length }} 条</span>
+    </div>
     <div v-if="records.length" class="space-y-2">
       <div
         v-for="r in records"
