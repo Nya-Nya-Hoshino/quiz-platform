@@ -67,6 +67,10 @@
         </h2>
         <ul class="space-y-2 pl-1">
           <li class="flex items-start gap-2">
+            <span class="mt-0.5 flex-shrink-0 rounded-sm bg-blue-100 px-1.5 py-0.5 text-xs text-blue-700">08-11</span>
+            <span class="text-gray-600"><b>跨设备同步修复</b>：练习进度现在会随答题实时上传云端（无需手动），换设备打开同一套练习会弹出「继续上次进度 / 重头开始」选择，进度真正跨设备延续；错题、收藏同样实时同步；366 题选项修正</span>
+          </li>
+          <li class="flex items-start gap-2">
             <span class="mt-0.5 flex-shrink-0 rounded-sm bg-blue-100 px-1.5 py-0.5 text-xs text-blue-700">08-10</span>
             <span class="text-gray-600"><b>新增收藏功能</b>：做题时点击题目右上角 ☆ 即可收藏；收藏本可勾选任意收藏题目组成一份专属练习；错题回顾周期更新为 1/2/4/7/15 天（已同步迁移历史错题数据）</span>
           </li>
