@@ -68,7 +68,7 @@
         <ul class="space-y-2 pl-1">
           <li class="flex items-start gap-2">
             <span class="mt-0.5 flex-shrink-0 rounded-sm bg-blue-100 px-1.5 py-0.5 text-xs text-blue-700">08-11</span>
-            <span class="text-gray-600"><b>跨设备同步修复</b>：练习进度现在会随答题实时上传云端（无需手动），换设备打开同一套练习会弹出「继续上次进度 / 重头开始」选择，进度真正跨设备延续；错题、收藏同样实时同步；366 题选项修正</span>
+            <span class="text-gray-600"><b>跨设备同步修复</b>：练习进度会随答题实时上传云端（无需手动），换设备打开同一套练习会弹出「继续上次进度 / 重头开始」选择；同步改为<b>双向合并</b>——任意设备的错题/收藏/进度都不会被其他设备旧数据覆盖；366、418、436 题答案修正</span>
           </li>
           <li class="flex items-start gap-2">
             <span class="mt-0.5 flex-shrink-0 rounded-sm bg-blue-100 px-1.5 py-0.5 text-xs text-blue-700">08-10</span>

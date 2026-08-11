@@ -26,6 +26,9 @@ import { useWrongBookStore } from './wrongBook'
 import { useFavoriteStore } from './favorites'
 import { useHistoryStore } from './history'
 import { usePracticeStore } from './practice'
+import type { FavoriteRecord } from './favorites'
+import { mergeWrongBook, mergeFavorites, mergeHistory, mergeProgress, mergeDaily } from '../utils/syncMerge'
+import type { WrongRecord, HistoryRecord } from '../types/exam'
 
 const AUTH_KEY = 'quiz-platform:auth'
 const PROGRESS_PREFIX = 'quiz-platform:progress'
@@ -87,27 +90,36 @@ function collectPayload(): SyncPayload {
   }
 }
 
-/** 把云端数据包写入本地（覆盖） */
+/** 把云端数据包合并写入本地（不覆盖本地新增，跨设备双向合并） */
 function applyPayload(payload: SyncPayload): void {
   const wrongBook = useWrongBookStore()
   const favorites = useFavoriteStore()
   const history = useHistoryStore()
-  wrongBook.hydrate(Array.isArray(payload.wrongBook) ? (payload.wrongBook as never[]) : [])
-  favorites.hydrate(Array.isArray(payload.favorites) ? (payload.favorites as never[]) : [])
-  history.hydrate(Array.isArray(payload.history) ? (payload.history as never[]) : [])
-  // 进度：先清空旧的再写入云端值
-  if (payload.progress && typeof payload.progress === 'object') {
-    for (const key of Object.keys(payload.progress)) {
-      try {
-        localStorage.setItem(key, JSON.stringify(payload.progress[key]))
-      } catch {
-        /* ignore */
-      }
+  // 合并前收集本地现有数据
+  const local = collectPayload()
+  wrongBook.hydrate(
+    mergeWrongBook(local.wrongBook as WrongRecord[], payload.wrongBook as WrongRecord[]),
+  )
+  favorites.hydrate(
+    mergeFavorites(local.favorites as FavoriteRecord[], payload.favorites as FavoriteRecord[]),
+  )
+  history.hydrate(
+    mergeHistory(local.history as HistoryRecord[], payload.history as HistoryRecord[]),
+  )
+  // 进度：本地与云端按 key 合并（同 key 取 savedAt 更新的）
+  const mergedProgress = mergeProgress(local.progress, payload.progress ?? {})
+  for (const [key, v] of Object.entries(mergedProgress)) {
+    try {
+      localStorage.setItem(key, JSON.stringify(v))
+    } catch {
+      /* ignore */
     }
   }
-  if (payload.daily != null) {
+  // 每日统计：取完成数更多的
+  const mergedDaily = mergeDaily(local.daily, payload.daily)
+  if (mergedDaily != null) {
     try {
-      localStorage.setItem('quiz-platform:daily-stat', JSON.stringify(payload.daily))
+      localStorage.setItem('quiz-platform:daily-stat', JSON.stringify(mergedDaily))
     } catch {
       /* ignore */
     }
@@ -194,6 +206,17 @@ export const useAuthStore = defineStore('auth', () => {
     debounceTimer = window.setTimeout(async () => {
       if (!state.value || !autoSyncOn || busy.value) return
       try {
+        // 推送前检查云端版本：若其他设备已上传更新数据（云端 savedAt 比本地记录新），
+        // 先合并到本地再推送，避免本设备旧数据覆盖他人新数据
+        try {
+          const remote = await fetchRemoteData(state.value.token)
+          const remoteSavedAt = remote.empty ? 0 : (remote.savedAt ?? 0)
+          if (remoteSavedAt > lastSyncAt.value && remote.payload) {
+            applyPayload(remote.payload)
+          }
+        } catch {
+          /* 云端检查失败则直接推送 */
+        }
         await pushRemoteData(state.value.token, collectPayload())
         lastSyncAt.value = Date.now()
         lastHash = dataHash()
