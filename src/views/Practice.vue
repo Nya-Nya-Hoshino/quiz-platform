@@ -9,7 +9,7 @@ import { usePracticeStore } from '../stores/practice'
 import { useAuthStore } from '../stores/auth'
 import { useAIExplainStore } from '../stores/aiExplain'
 import { findQuestion, findReadingGroup } from '../utils/parser'
-import { hasProgress as hasSavedProgress, loadProgress, clearProgress } from '../utils/progress'
+import { hasProgress as hasSavedProgress, loadProgress } from '../utils/progress'
 import ExamProgress from '../components/ExamProgress.vue'
 import QuestionCard from '../components/QuestionCard.vue'
 import AnswerPanel from '../components/AnswerPanel.vue'
@@ -43,15 +43,11 @@ onMounted(async () => {
   }
   const id = route.params.id as string
   if (!practice.exam || practice.exam.id !== id) {
-    const hadSaved = hasSavedProgress('practice', id) // start 前检测（直接读 localStorage）
+    const hadSaved = hasSavedProgress('practice', id) // start 前检测（直接读 localStorage，不清除）
     try {
+      await practice.startPractice(id, false) // 内部会自动 restoreFromSaved 恢复进度
       if (hadSaved) {
-        // 有存档：先清掉，默认从头开始，弹窗让用户选择是否恢复
-        clearProgress('practice', id)
-      }
-      await practice.startPractice(id, false)
-      if (hadSaved) {
-        // 读取存档摘要（进度位置/已答题数）用于弹窗展示
+        // 读取存档摘要（进度位置/已答题数）用于弹窗展示；startPractice 已恢复，用户确认「继续」即可直接沿用
         const saved = loadProgress<{
           currentIndex: number
           states: Record<string, unknown>
@@ -69,15 +65,15 @@ onMounted(async () => {
   }
 })
 
-/** 弹窗：继续上次进度 */
+/** 弹窗：继续上次进度（startPractice 已恢复，直接关闭弹窗沿用即可） */
 function continueLastProgress(): void {
   showResume.value = false
-  practice.restoreFromSaved(route.params.id as string)
 }
 
-/** 弹窗：重头开始（当前已是重头状态，直接关闭） */
+/** 弹窗：重头开始（清存档并重置为第一题） */
 function restartFromScratch(): void {
   showResume.value = false
+  practice.resetToStart()
 }
 
 const currentQuestion = computed(() => {

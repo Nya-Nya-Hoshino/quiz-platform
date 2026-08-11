@@ -259,6 +259,16 @@ export const usePracticeStore = defineStore('practice', () => {
     })
   }
 
+  /** 重头开始（弹窗选「重头开始」时）：清存档 + 恢复默认题序 + 清答题状态 */
+  function resetToStart(): void {
+    if (!exam.value) return
+    discardProgress()
+    order.value = refs.value.map((_, i) => i)
+    states.value = {}
+    currentIndex.value = 0
+    points.value = 0
+  }
+
   function reset(): void {
     discardProgress()
     exam.value = null
@@ -273,6 +283,6 @@ export const usePracticeStore = defineStore('practice', () => {
     exam, refs, currentIndex, states, loading, error, points, daily,
     total, currentId, progress, correctCount,
     startPractice, startPracticeWithRaw, setAnswer, hasAnswer, submitCurrent, next, prev, finishPractice, reset,
-    hasSavedProgress, restoreFromSaved, discardProgress,
+    hasSavedProgress, restoreFromSaved, discardProgress, resetToStart,
   }
 })

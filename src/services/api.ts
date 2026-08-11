@@ -137,7 +137,9 @@ export async function fetchExam(examId: string): Promise<Exam> {
       throw new Error(`试卷数据加载器不存在: ${examId}`)
     }
     const raw = await loader()
-    return parseExamRaw(raw)
+    // 注入真实 exam id（数据文件可能没有 testId 字段，parseExamRaw 会退回 'exam'，
+    // 导致进度存档 key 用 route id（practice:user-1）而恢复时查 practice:exam 永远失败）
+    return parseExamRaw({ ...raw, id: lookupId })
   }
   const raw = await request<Record<string, unknown>>(`/exam/${examId}`)
   return parseExamRaw(raw)
