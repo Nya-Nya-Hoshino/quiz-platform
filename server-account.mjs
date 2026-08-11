@@ -85,16 +85,21 @@ function resolveToken(token) {
 /** 读取请求体 JSON */
 function readBody(req) {
   return new Promise((resolve, reject) => {
-    let raw = ''
+    // 用 Buffer 收集，避免多字节 UTF-8 字符跨 chunk 边界被切断产生乱码
+    const chunks = []
+    let total = 0
     req.on('data', (c) => {
-      raw += c
-      if (raw.length > 20 * 1024 * 1024) {
+      total += c.length
+      if (total > 20 * 1024 * 1024) {
         reject(new Error('请求体过大'))
         req.destroy()
+        return
       }
+      chunks.push(Buffer.from(c))
     })
     req.on('end', () => {
       try {
+        const raw = Buffer.concat(chunks).toString('utf-8')
         resolve(raw ? JSON.parse(raw) : {})
       } catch {
         resolve({})
