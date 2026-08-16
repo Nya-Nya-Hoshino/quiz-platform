@@ -5,12 +5,14 @@
 import { useRoute, useRouter } from 'vue-router'
 import { computed, onBeforeUnmount, ref } from 'vue'
 import { useWrongBookStore } from '../stores/wrongBook'
+import { useNotesStore } from '../stores/notes'
 import JLPTCountdown from '../components/JLPTCountdown.vue'
 import SiteSticker from '../components/SiteSticker.vue'
 
 const route = useRoute()
 const router = useRouter()
 const wrongBook = useWrongBookStore()
+const notes = useNotesStore()
 
 /** 顶部加载进度条：路由切换（含懒加载 chunk 与页面数据加载期）时显示 */
 const progressVisible = ref(false)
@@ -46,11 +48,13 @@ onBeforeUnmount(() => window.clearInterval(progressTimer))
 
 const navItems = [
   { path: '/', label: '题库' },
+  { path: '/search', label: '搜索' },
   { path: '/jlpt', label: 'JLPT 真题' },
   { path: '/history', label: '历史记录' },
   { path: '/account', label: '账号' },
   { path: '/wrong-book', label: '错题本' },
   { path: '/favorites', label: '收藏本' },
+  { path: '/notes', label: '笔记' },
   { path: '/settings', label: '设置' },
 ]
 
@@ -60,6 +64,7 @@ const isActive = (path: string) => {
 }
 
 const wrongCount = computed(() => wrongBook.total)
+const noteCount = computed(() => notes.total)
 </script>
 
 <template>
@@ -90,6 +95,10 @@ const wrongCount = computed(() => wrongBook.total)
               v-if="item.path === '/wrong-book' && wrongCount > 0"
               class="ml-1 rounded-full bg-red-500 px-1.5 py-0.5 text-xs text-white"
             >{{ wrongCount }}</span>
+            <span
+              v-if="item.path === '/notes' && noteCount > 0"
+              class="ml-1 rounded-full bg-blue-500 px-1.5 py-0.5 text-xs text-white"
+            >{{ noteCount }}</span>
           </router-link>
         </nav>
       </div>

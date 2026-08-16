@@ -67,6 +67,18 @@
         </h2>
         <ul class="space-y-2 pl-1">
           <li class="flex items-start gap-2">
+            <span class="mt-0.5 flex-shrink-0 rounded-sm bg-blue-100 px-1.5 py-0.5 text-xs text-blue-700">08-16</span>
+            <span class="text-gray-600"><b>修复错题本删除失效</b>：删除/清空的错题、收藏、笔记、历史记录现在会真正从云端与其他设备删除，不再因自动同步/刷新而被旧数据「复活」（引入删除墓碑机制，删除后重新答错/收藏/编辑仍会正常恢复）</span>
+          </li>
+          <li class="flex items-start gap-2">
+            <span class="mt-0.5 flex-shrink-0 rounded-sm bg-blue-100 px-1.5 py-0.5 text-xs text-blue-700">08-16</span>
+            <span class="text-gray-600"><b>新增题目模糊检索</b>：顶部导航「搜索」可按题干、选项、提示、解析、译文中出现的词/字/句模糊检索全站题目（N3 自主练习 + JLPT 真题 N2），支持中日文子序列模糊匹配，结果可直接跳转到对应题目的练习/考试模式</span>
+          </li>
+          <li class="flex items-start gap-2">
+            <span class="mt-0.5 flex-shrink-0 rounded-sm bg-blue-100 px-1.5 py-0.5 text-xs text-blue-700">08-16</span>
+            <span class="text-gray-600"><b>新增笔记功能</b>：做题时点击题目右上角 📝 或操作栏「笔记」按钮，填写 <b>原词 + 译文</b>（备注可选）即可记录；顶部导航「笔记」页以笔记表 + 自动更新的 Markdown 文档双视图展示，随账号云端同步</span>
+          </li>
+          <li class="flex items-start gap-2">
             <span class="mt-0.5 flex-shrink-0 rounded-sm bg-blue-100 px-1.5 py-0.5 text-xs text-blue-700">08-11</span>
             <span class="text-gray-600"><b>跨设备同步修复</b>：练习进度会随答题实时上传云端（无需手动），换设备打开同一套练习会弹出「继续上次进度 / 重头开始」选择；同步改为<b>双向合并</b>——任意设备的错题/收藏/进度都不会被其他设备旧数据覆盖；366、418、436 题答案修正</span>
           </li>

@@ -46,7 +46,13 @@ onMounted(async () => {
     const hadSaved = hasSavedProgress('practice', id) // start 前检测（直接读 localStorage，不清除）
     try {
       await practice.startPractice(id, false) // 内部会自动 restoreFromSaved 恢复进度
-      if (hadSaved) {
+      // 搜索深链：?q=questionId → 直接跳到该题
+      const q = route.query.q as string | undefined
+      if (q) {
+        const idx = practice.refs.findIndex((r) => r.id === q)
+        if (idx >= 0) practice.currentIndex = idx
+      }
+      if (hadSaved && !route.query.q) {
         // 读取存档摘要（进度位置/已答题数）用于弹窗展示；startPractice 已恢复，用户确认「继续」即可直接沿用
         const saved = loadProgress<{
           currentIndex: number

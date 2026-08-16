@@ -70,6 +70,18 @@ const router = createRouter({
       meta: { title: '收藏本' },
     },
     {
+      path: '/notes',
+      name: 'notes',
+      component: () => import('../views/Notes.vue'),
+      meta: { title: '笔记' },
+    },
+    {
+      path: '/search',
+      name: 'search',
+      component: () => import('../views/Search.vue'),
+      meta: { title: '题目搜索' },
+    },
+    {
       path: '/account',
       name: 'account',
       component: () => import('../views/Account.vue'),

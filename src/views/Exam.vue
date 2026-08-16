@@ -36,7 +36,13 @@ onMounted(async () => {
     const hadSaved = hasSavedProgress('exam', id) // start 前检测（直接读 localStorage）
     try {
       await examStore.startExam(id)
-      if (hadSaved) {
+      // 搜索深链：?q=questionId → 直接跳到该题
+      const q = route.query.q as string | undefined
+      if (q) {
+        const idx = examStore.refs.findIndex((r) => r.id === q)
+        if (idx >= 0) examStore.currentIndex = idx
+      }
+      if (hadSaved && !route.query.q) {
       restored.value = true
       // 提示仅显示 1.2s 后自动隐藏
       window.setTimeout(() => (restored.value = false), 1200)

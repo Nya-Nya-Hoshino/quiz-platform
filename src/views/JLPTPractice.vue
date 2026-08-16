@@ -10,10 +10,15 @@ import { useAIExplainStore } from '../stores/aiExplain'
 import { useWrongBookStore } from '../stores/wrongBook'
 import ExamProgress from '../components/ExamProgress.vue'
 import AIHelper from '../components/AIHelper.vue'
+import NoteEditor from '../components/NoteEditor.vue'
 
 const route = useRoute()
 const aiExplain = useAIExplainStore()
 const wrongBook = useWrongBookStore()
+
+/* ===== 添加笔记（做题界面侧边栏入口） ===== */
+const noteShow = ref(false)
+const noteSuggested = ref('')
 
 interface FlatItem {
   groupId: string
@@ -66,6 +71,12 @@ onMounted(async () => {
     )
     currentIndex.value = 0
     points.value = 0
+    // 搜索深链：?q=groupId → 直接跳到该题组
+    const q = route.query.q as string | undefined
+    if (q) {
+      const idx = items.value.findIndex((i) => i.groupId === q)
+      if (idx >= 0) currentIndex.value = idx
+    }
   } catch (e) {
     error.value = (e as Error).message
   } finally {
@@ -151,6 +162,23 @@ function buildAIContext(): string {
 function openAI(): void {
   aiContext.value = buildAIContext()
   aiShow.value = true
+}
+
+/** 打开笔记编辑器：优先提取题干中的加粗词作为建议原词 */
+function openNote(): void {
+  const c = current.value
+  if (!c) return
+  const b = c.content.match(/\*\*(.+?)\*\*/)
+  noteSuggested.value = b && b[1] ? b[1] : ''
+  noteShow.value = true
+}
+
+/** 当前题来源摘要（用于笔记来源展示） */
+function noteSourceSnippet(): string {
+  const c = current.value
+  if (!c) return ''
+  const s = c.content.replace(/\*\*/g, '').replace(/\s+/g, ' ').trim()
+  return s.length > 80 ? s.slice(0, 80) + '…' : s
 }
 
 /** AI 解析文案 */
@@ -242,6 +270,11 @@ const currentAnalysis = computed(() => {
             <button
               type="button"
               class="rounded-sm border border-gray-300 px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-50"
+              @click="openNote"
+            >📝 笔记</button>
+            <button
+              type="button"
+              class="rounded-sm border border-gray-300 px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-50"
               @click="openAI"
             >AI 解析</button>
             <button
@@ -311,6 +344,13 @@ const currentAnalysis = computed(() => {
       subject="japanese"
       :user-answer="current?.userAnswer"
       :is-wrong="current?.submitted ? !current.isCorrect : undefined"
+    />
+
+    <!-- 笔记编辑器（侧边抽屉） -->
+    <NoteEditor
+      v-model:show="noteShow"
+      :suggested-word="noteSuggested"
+      :source="{ questionId: current?.groupId, questionSnippet: noteSourceSnippet() }"
     />
   </div>
 </template>

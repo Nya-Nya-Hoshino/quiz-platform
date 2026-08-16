@@ -12,6 +12,13 @@ export interface SyncPayload {
   wrongBook: unknown[]
   favorites: unknown[]
   history: unknown[]
+  /** 笔记（原词/译文/备注，随账号云端同步） */
+  notes: unknown[]
+  /** 删除墓碑（删除传播）：删除的记录 ID → 删除时间戳 */
+  deletedWrongBook?: Record<string, number>
+  deletedFavorites?: Record<string, number>
+  deletedNotes?: Record<string, number>
+  deletedHistory?: Record<string, number>
   /** 练习/考试进度：{ key: ProgressData } */
   progress: Record<string, unknown>
   /** 每日统计 */

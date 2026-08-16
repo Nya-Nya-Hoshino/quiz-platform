@@ -8,6 +8,8 @@ import { ref, computed } from 'vue'
 import type { HistoryRecord, ExamResult } from '../types/exam'
 
 const STORAGE_KEY = 'quiz-platform:history'
+/** 删除墓碑表（删除传播）：{ 记录ID: 删除时间戳 } */
+const DELETED_KEY = 'quiz-platform:history:deleted'
 const MAX_RECORDS = 200
 
 function loadAll(): HistoryRecord[] {
@@ -22,8 +24,26 @@ function persist(records: HistoryRecord[]): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(records))
 }
 
+function loadDeleted(): Record<string, number> {
+  try {
+    const raw = localStorage.getItem(DELETED_KEY)
+    if (raw) {
+      const parsed = JSON.parse(raw) as Record<string, number>
+      return typeof parsed === 'object' && parsed ? parsed : {}
+    }
+  } catch { /* ignore */ }
+  return {}
+}
+function persistDeleted(deleted: Record<string, number>): void {
+  try {
+    localStorage.setItem(DELETED_KEY, JSON.stringify(deleted))
+  } catch { /* ignore */ }
+}
+
 export const useHistoryStore = defineStore('history', () => {
   const records = ref<HistoryRecord[]>(loadAll())
+  /** 删除墓碑：{ 记录ID: 删除时间戳 } */
+  const deleted = ref<Record<string, number>>(loadDeleted())
 
   const total = computed(() => records.value.length)
 
@@ -71,19 +91,30 @@ export const useHistoryStore = defineStore('history', () => {
 
   function remove(id: string): void {
     records.value = records.value.filter((r) => r.id !== id)
+    deleted.value[id] = Date.now()
     persist(records.value)
+    persistDeleted(deleted.value)
   }
 
   function clear(): void {
+    const now = Date.now()
+    for (const r of records.value) {
+      deleted.value[r.id] = now
+    }
     records.value = []
     persist(records.value)
+    persistDeleted(deleted.value)
   }
 
-  /** 从云端/外部加载整组记录（覆盖本地并持久化） */
-  function hydrate(loaded: HistoryRecord[]): void {
+  /** 从云端/外部加载整组记录（覆盖本地并持久化）；可同时载入删除墓碑 */
+  function hydrate(loaded: HistoryRecord[], deletedMap?: Record<string, number>): void {
     records.value = Array.isArray(loaded) ? loaded.slice(0, MAX_RECORDS) : []
+    if (deletedMap) {
+      deleted.value = { ...deletedMap }
+      persistDeleted(deleted.value)
+    }
     persist(records.value)
   }
 
-  return { records, total, addFromResult, addRecord, byExam, remove, clear, hydrate }
+  return { records, deleted, total, addFromResult, addRecord, byExam, remove, clear, hydrate }
 })

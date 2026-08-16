@@ -1,6 +1,6 @@
 # 刷题平台 · Quiz Platform
 
-现代化在线日语 JLPT 刷题平台：**考试模式**、**练习模式**、**错题本（艾宾浩斯回顾 + AI 总结）**、**收藏本**、**账号云端同步**、**JLPT 真题整卷机考**、**AI 辅助学习**。
+现代化在线日语 JLPT 刷题平台：**考试模式**、**练习模式**、**错题本（艾宾浩斯回顾 + AI 总结）**、**收藏本**、**笔记（自动 Markdown 文档）**、**题目模糊检索**、**账号云端同步**、**JLPT 真题整卷机考**、**AI 辅助学习**。
 
 技术栈：Vue 3 + TypeScript + Vite + Vue Router + Pinia + TailwindCSS v4 + Naive UI。
 后端：Node.js 原生 HTTP（零依赖），JSON 文件存储。
@@ -18,7 +18,9 @@
 | JLPT 倒计时 | 侧边栏 ACG 风格倒计时，按**北京时间**计算下次考试（7月/12月第一个周日） |
 | 错题本 | 自动记录错题（题目快照/题型/JLPT等级）、单题回顾练习、**艾宾浩斯五周期回顾（1/2/4/7/15 天）**、**AI 错题总结**（按日期区间生成《知识点记背手册》） |
 | 收藏本 | 题目右上角 ☆ 收藏，勾选任意收藏题目组成一份专属练习 |
-| 账号系统 | 注册/登录，错题本 + 收藏 + 历史记录 + 做题进度**多设备云端同步**；首次注册自动上传本地缓存 |
+| 笔记 | 做题界面 📝 添加笔记（原词 + 译文必填、备注可选），顶栏「笔记」页以**笔记表 + 自动更新的 Markdown 文档**双视图展示，随账号云端同步 |
+| 题目搜索 | 顶部导航「搜索」：模糊检索题干/选项/提示/解析/译文中的词、字、句（含中日文子序列模糊匹配），结果一键跳转到对应题目练习/考试 |
+| 账号系统 | 注册/登录，错题本 + 收藏 + 笔记 + 历史记录 + 做题进度**多设备云端同步**；首次注册自动上传本地缓存 |
 | 历史记录 | 考试/练习完成记录（得分、正确率、耗时） |
 | AI 助手 | 侧边栏：解释题目 / 分析错误 / 总结知识点 / 生成类似题 / 自定义提问；AI 逐题解析（后台预生成） |
 | 备份 | 账号中心一键**后端备份快照** + **下载全站备份**（含用户表） |
@@ -116,10 +118,10 @@ quiz-platform/
 │   └── backups/          #   后端备份快照
 ├── dist/                 # 生产构建产物（gitignore）
 ├── src/
-│   ├── components/       # QuestionCard / AnswerPanel / ExplanationPanel / AIHelper / JLPTCountdown / SiteSticker 等
-│   ├── views/            # Home / Exam / Practice / Result / History / WrongBook / WrongReview / Favorites / Account / Notice / JLPT*
-│   ├── stores/           # Pinia：exam / practice / wrongBook / favorites / history / auth / aiExplain
-│   ├── services/         # api.ts（数据层）/ ai.ts（AI）/ account.ts（云端同步）
+│   ├── components/       # QuestionCard / AnswerPanel / ExplanationPanel / AIHelper / NoteEditor / JLPTCountdown / SiteSticker 等
+│   ├── views/            # Home / Search / Exam / Practice / Result / History / WrongBook / WrongReview / Favorites / Notes / Account / Notice / JLPT*
+│   ├── stores/           # Pinia：exam / practice / wrongBook / favorites / notes / history / auth / aiExplain
+│   ├── services/         # api.ts（数据层）/ search.ts（题目模糊检索索引）/ ai.ts（AI）/ account.ts（云端同步）
 │   ├── utils/            # parser.ts（题库解析）/ review.ts（艾宾浩斯算法）/ progress.ts / markdown.ts
 │   ├── prompts/          # 学科 System Prompt（日语教师 / 编程导师 / 通用）
 │   ├── types/            # 通用 Question Schema / Exam 模型

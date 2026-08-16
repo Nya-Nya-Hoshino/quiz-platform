@@ -3,10 +3,11 @@
  * 题目渲染卡片
  * 按题型动态渲染：单选 / 多选 / 判断 / 填空 / 排序 / 简答 / 阅读子题
  */
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import type { Question } from '../types/question'
 import { JUDGE_OPTIONS } from '../types/question'
 import { useFavoriteStore } from '../stores/favorites'
+import NoteEditor from './NoteEditor.vue'
 
 const favStore = useFavoriteStore()
 
@@ -27,6 +28,30 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'update:modelValue', value: unknown): void
 }>()
+
+/* ===== 添加笔记（题目右上角按钮 → 打开笔记编辑器抽屉） ===== */
+const noteShow = ref(false)
+const noteSuggested = ref('')
+
+/** 从题干/提示中提取建议的「原词」：优先 <u>下划线词</u>，其次「」中的词 */
+function extractWord(q: Question): string {
+  const m = q.question.match(/<u>(.*?)<\/u>/)
+  if (m && m[1]) return m[1]
+  const p = (q.prompt ?? '').match(/「([^」]+)」/)
+  if (p && p[1]) return p[1]
+  return ''
+}
+
+/** 去掉标记后的题干摘要（用于笔记来源展示） */
+function questionSnippet(q: Question): string {
+  const s = q.question.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim()
+  return s.length > 80 ? s.slice(0, 80) + '…' : s
+}
+
+function openNote(): void {
+  noteSuggested.value = extractWord(props.question)
+  noteShow.value = true
+}
 
 const isChoice = computed(() => props.question.type === 'single_choice')
 const isMulti = computed(() => props.question.type === 'multiple_choice')
@@ -116,6 +141,13 @@ function handleFillInput(i: number, e: Event): void {
         {{ question.type === 'single_choice' && question.isReadingChild ? '阅读' : question.type === 'single_choice' ? '单选' : question.type === 'multiple_choice' ? '多选' : question.type === 'judge' ? '判断' : question.type === 'fill_blank' ? '填空' : question.type === 'sorting' ? '排序' : '简答' }}
       </span>
       <h3 class="flex-1 text-base font-medium leading-7 text-gray-900" v-html="questionHtml" />
+      <!-- 添加笔记按钮 -->
+      <button
+        type="button"
+        class="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md border border-blue-200 bg-blue-50 text-sm leading-none text-blue-600 transition-all hover:bg-blue-100 hover:text-blue-700"
+        title="添加笔记（原词 + 译文）"
+        @click.stop="openNote"
+      >📝</button>
       <!-- 收藏按钮 -->
       <button
         type="button"
@@ -292,6 +324,13 @@ function handleFillInput(i: number, e: Event): void {
         {{ question.explanation || '暂无解析内容。' }}
       </p>
     </div>
+
+    <!-- 笔记编辑器（侧边抽屉） -->
+    <NoteEditor
+      v-model:show="noteShow"
+      :suggested-word="noteSuggested"
+      :source="{ questionId: question.id, questionSnippet: questionSnippet(question) }"
+    />
   </div>
 </template>
 

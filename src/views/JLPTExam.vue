@@ -12,9 +12,14 @@ import { fetchJLPTExams, type JLPTExam } from '../services/api'
 import { JLPT_TOTAL } from '../utils/jlptScore'
 import ExamProgress from '../components/ExamProgress.vue'
 import AIHelper from '../components/AIHelper.vue'
+import NoteEditor from '../components/NoteEditor.vue'
 
 const route = useRoute()
 const router = useRouter()
+
+/* ===== 添加笔记（做题界面侧边栏入口） ===== */
+const noteShow = ref(false)
+const noteSuggested = ref('')
 
 /** 平铺后的题组列表（保持原卷顺序） */
 interface FlatGroup {
@@ -67,6 +72,12 @@ onMounted(async () => {
     currentIndex.value = 0
     startTime.value = Date.now()
     finished.value = false
+    // 搜索深链：?q=groupId → 直接跳到该题组
+    const q = route.query.q as string | undefined
+    if (q) {
+      const idx = flatGroups.value.findIndex((g) => g.groupId === q)
+      if (idx >= 0) currentIndex.value = idx
+    }
   } catch (e) {
     error.value = (e as Error).message
   } finally {
@@ -116,6 +127,23 @@ function buildAIContext(): string {
 function openAI(): void {
   aiContext.value = buildAIContext()
   aiShow.value = true
+}
+
+/** 打开笔记编辑器：优先提取题干中的加粗词作为建议原词 */
+function openNote(): void {
+  const g = currentGroup.value
+  if (!g) return
+  const b = g.group.content.match(/\*\*(.+?)\*\*/)
+  noteSuggested.value = b && b[1] ? b[1] : ''
+  noteShow.value = true
+}
+
+/** 当前题组来源摘要（用于笔记来源展示） */
+function noteSourceSnippet(): string {
+  const g = currentGroup.value
+  if (!g) return ''
+  const s = g.group.content.replace(/\*\*/g, '').replace(/\s+/g, ' ').trim()
+  return s.length > 80 ? s.slice(0, 80) + '…' : s
 }
 
 /** 交卷 → 结果页（答案经 sessionStorage 传递） */
@@ -226,6 +254,11 @@ function submit(): void {
             <button
               type="button"
               class="rounded-sm border border-gray-300 px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-50"
+              @click="openNote"
+            >📝 笔记</button>
+            <button
+              type="button"
+              class="rounded-sm border border-gray-300 px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-50"
               @click="openAI"
             >AI 解析</button>
             <button
@@ -279,6 +312,13 @@ function submit(): void {
       :question-context="aiContext"
       subject="japanese"
       :user-answer="currentAnswer"
+    />
+
+    <!-- 笔记编辑器（侧边抽屉） -->
+    <NoteEditor
+      v-model:show="noteShow"
+      :suggested-word="noteSuggested"
+      :source="{ questionId: currentGroup?.groupId, questionSnippet: noteSourceSnippet() }"
     />
   </div>
 </template>

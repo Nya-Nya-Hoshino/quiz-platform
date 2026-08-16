@@ -17,6 +17,12 @@ import { applyReviewResult, beijingDayStart, initReviewState, isReviewDue, REVIE
 const STORAGE_KEY = 'quiz-platform:wrong-book'
 /** 回顾周期表迁移标记（旧表 2/4/7/15 → 新表 1/2/4/7/15） */
 const MIGRATED_KEY = 'quiz-platform:wrong-book:review-v2'
+/**
+ * 删除墓碑表（删除传播）：
+ * 记录 { questionId: 删除时间戳 }，随同步数据包上传，
+ * 合并时删除时间晚于该题最近活跃时间的记录不再出现（修复删除后又被云端旧数据合并回来的问题）。
+ */
+const DELETED_KEY = 'quiz-platform:wrong-book:deleted'
 
 /** 从 Question 生成快照（可附带阅读文章） */
 export function toSnapshot(
@@ -111,8 +117,31 @@ function persist(records: WrongRecord[]): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(records))
 }
 
+/* ===== 删除墓碑 ===== */
+function loadDeleted(): Record<string, number> {
+  try {
+    const raw = localStorage.getItem(DELETED_KEY)
+    if (raw) {
+      const parsed = JSON.parse(raw) as Record<string, number>
+      return typeof parsed === 'object' && parsed ? parsed : {}
+    }
+  } catch {
+    /* ignore */
+  }
+  return {}
+}
+function persistDeleted(deleted: Record<string, number>): void {
+  try {
+    localStorage.setItem(DELETED_KEY, JSON.stringify(deleted))
+  } catch {
+    /* ignore */
+  }
+}
+
 export const useWrongBookStore = defineStore('wrongBook', () => {
   const records = ref<WrongRecord[]>(loadAll())
+  /** 删除墓碑：{ questionId: 删除时间戳 }（删除传播用） */
+  const deleted = ref<Record<string, number>>(loadDeleted())
 
   const total = computed(() => records.value.length)
   /** 今日到期的错题（需回顾） */
@@ -136,6 +165,11 @@ export const useWrongBookStore = defineStore('wrongBook', () => {
     },
   ): void {
     const now = Date.now()
+    // 重新答错 = 该题重新活跃 → 清除删除墓碑（删除传播不误伤重新加入的题）
+    if (deleted.value[question.id] != null) {
+      delete deleted.value[question.id]
+      persistDeleted(deleted.value)
+    }
     const found = records.value.find((r) => r.questionId === question.id)
     if (found) {
       found.wrongCount += 1
@@ -209,16 +243,23 @@ export const useWrongBookStore = defineStore('wrongBook', () => {
     return id
   }
 
-  /** 移除错题 */
+  /** 移除错题（记录删除墓碑，保证云端/其他设备合并时不会复活） */
   function remove(questionId: string): void {
     records.value = records.value.filter((r) => r.questionId !== questionId)
+    deleted.value[questionId] = Date.now()
     persist(records.value)
+    persistDeleted(deleted.value)
   }
 
-  /** 清空错题本 */
+  /** 清空错题本（全部记录墓碑化，删除同样跨设备生效） */
   function clear(): void {
+    const now = Date.now()
+    for (const r of records.value) {
+      deleted.value[r.questionId] = now
+    }
     records.value = []
     persist(records.value)
+    persistDeleted(deleted.value)
   }
 
   /** 检查某题是否在错题本 */
@@ -231,14 +272,18 @@ export const useWrongBookStore = defineStore('wrongBook', () => {
     return records.value.find((r) => r.questionId === questionId)
   }
 
-  /** 从云端/外部加载整组记录（覆盖本地并持久化） */
-  function hydrate(loaded: WrongRecord[]): void {
+  /** 从云端/外部加载整组记录（覆盖本地并持久化）；可同时载入删除墓碑 */
+  function hydrate(loaded: WrongRecord[], deletedMap?: Record<string, number>): void {
     records.value = Array.isArray(loaded) ? loaded : []
+    if (deletedMap) {
+      deleted.value = { ...deletedMap }
+      persistDeleted(deleted.value)
+    }
     persist(records.value)
   }
 
   return {
-    records, total, dueReviews, masteredCount,
+    records, deleted, total, dueReviews, masteredCount,
     recordWrong, addCustom, submitReview, remove, clear, isWrong, findRecord, hydrate,
   }
 })

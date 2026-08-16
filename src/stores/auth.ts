@@ -24,10 +24,12 @@ import {
 } from '../services/account'
 import { useWrongBookStore } from './wrongBook'
 import { useFavoriteStore } from './favorites'
+import { useNotesStore } from './notes'
 import { useHistoryStore } from './history'
 import { usePracticeStore } from './practice'
 import type { FavoriteRecord } from './favorites'
-import { mergeWrongBook, mergeFavorites, mergeHistory, mergeProgress, mergeDaily } from '../utils/syncMerge'
+import type { NoteRecord } from './notes'
+import { mergeWrongBook, mergeFavorites, mergeNotes, mergeHistory, mergeProgress, mergeDaily, mergeDeleted, type DeletedMap } from '../utils/syncMerge'
 import type { WrongRecord, HistoryRecord } from '../types/exam'
 
 const AUTH_KEY = 'quiz-platform:auth'
@@ -61,6 +63,7 @@ function persistAuth(state: AuthState | null): void {
 function collectPayload(): SyncPayload {
   const wrongBook = useWrongBookStore()
   const favorites = useFavoriteStore()
+  const notes = useNotesStore()
   const history = useHistoryStore()
   const progress: Record<string, unknown> = {}
   for (let i = 0; i < localStorage.length; i++) {
@@ -84,27 +87,58 @@ function collectPayload(): SyncPayload {
     exportedAt: Date.now(),
     wrongBook: wrongBook.records,
     favorites: favorites.records,
+    notes: notes.records,
     history: history.records,
+    deletedWrongBook: wrongBook.deleted,
+    deletedFavorites: favorites.deleted,
+    deletedNotes: notes.deleted,
+    deletedHistory: history.deleted,
     progress,
     daily,
   }
 }
 
-/** 把云端数据包合并写入本地（不覆盖本地新增，跨设备双向合并） */
+/** 把云端数据包合并写入本地（不覆盖本地新增，跨设备双向合并；删除墓碑保证已删记录不复活） */
 function applyPayload(payload: SyncPayload): void {
   const wrongBook = useWrongBookStore()
   const favorites = useFavoriteStore()
+  const notes = useNotesStore()
   const history = useHistoryStore()
   // 合并前收集本地现有数据
   const local = collectPayload()
+  const localWrong = (local.wrongBook ?? []) as WrongRecord[]
+  const remoteWrong = (payload.wrongBook ?? []) as WrongRecord[]
+  const localFav = (local.favorites ?? []) as FavoriteRecord[]
+  const remoteFav = (payload.favorites ?? []) as FavoriteRecord[]
+  const localNotes = (local.notes ?? []) as NoteRecord[]
+  const remoteNotes = (payload.notes ?? []) as NoteRecord[]
+
+  // 合并删除墓碑（同 id 取较新的删除时间），合并时应用
+  const wrongDeleted = mergeDeleted(local.deletedWrongBook as DeletedMap | undefined, payload.deletedWrongBook as DeletedMap | undefined)
+  const favDeleted = mergeDeleted(local.deletedFavorites as DeletedMap | undefined, payload.deletedFavorites as DeletedMap | undefined)
+  const notesDeleted = mergeDeleted(local.deletedNotes as DeletedMap | undefined, payload.deletedNotes as DeletedMap | undefined)
+  const historyDeleted = mergeDeleted(local.deletedHistory as DeletedMap | undefined, payload.deletedHistory as DeletedMap | undefined)
+
   wrongBook.hydrate(
-    mergeWrongBook(local.wrongBook as WrongRecord[], payload.wrongBook as WrongRecord[]),
+    mergeWrongBook(localWrong, remoteWrong, wrongDeleted, wrongDeleted),
+    wrongDeleted,
   )
   favorites.hydrate(
-    mergeFavorites(local.favorites as FavoriteRecord[], payload.favorites as FavoriteRecord[]),
+    mergeFavorites(localFav, remoteFav, favDeleted, favDeleted),
+    favDeleted,
+  )
+  notes.hydrate(
+    mergeNotes(localNotes, remoteNotes, notesDeleted, notesDeleted),
+    notesDeleted,
   )
   history.hydrate(
-    mergeHistory(local.history as HistoryRecord[], payload.history as HistoryRecord[]),
+    mergeHistory(
+      (local.history ?? []) as HistoryRecord[],
+      (payload.history ?? []) as HistoryRecord[],
+      historyDeleted,
+      historyDeleted,
+    ),
+    historyDeleted,
   )
   // 进度：本地与云端按 key 合并（同 key 取 savedAt 更新的）
   const mergedProgress = mergeProgress(local.progress, payload.progress ?? {})
@@ -237,8 +271,13 @@ export const useAuthStore = defineStore('auth', () => {
       watch(
         () => [
           useWrongBookStore().records,
+          useWrongBookStore().deleted,
           useFavoriteStore().records,
+          useFavoriteStore().deleted,
+          useNotesStore().records,
+          useNotesStore().deleted,
           useHistoryStore().records,
+          useHistoryStore().deleted,
           practice.states,
           practice.daily,
         ],
