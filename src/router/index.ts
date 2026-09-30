@@ -99,6 +99,19 @@ const router = createRouter({
       component: () => import('../views/Notice.vue'),
       meta: { title: '站点公告' },
     },
+    /* ===== 隐藏页：鱼播放器（不在导航公开，需直接访问 URL） ===== */
+    {
+      path: '/fishplayer',
+      name: 'fishplayer',
+      component: () => import('../views/FishPlayer.vue'),
+      meta: { title: '鱼播放器' },
+    },
+    {
+      path: '/fishplayer/upload',
+      name: 'fishplayer-upload',
+      component: () => import('../views/FishPlayerUpload.vue'),
+      meta: { title: '媒体上传管理' },
+    },
     {
       path: '/settings',
       name: 'settings',

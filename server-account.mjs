@@ -82,6 +82,17 @@ function resolveToken(token) {
   return tokens[token] ?? null
 }
 
+/** 供其他后端模块复用：由 Bearer token 解析用户名（无 token/失效 → null） */
+export function resolveTokenUser(token) {
+  return resolveToken(token)
+}
+
+/** 供其他后端模块复用：从请求头取 Bearer token */
+export function bearerToken(req) {
+  const h = String(req.headers.authorization ?? '')
+  return h.startsWith('Bearer ') ? h.slice(7).trim() : ''
+}
+
 /** 读取请求体 JSON */
 function readBody(req) {
   return new Promise((resolve, reject) => {

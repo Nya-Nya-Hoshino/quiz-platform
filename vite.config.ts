@@ -52,6 +52,8 @@ export default defineConfig(({ mode }) => {
         '/api/login': { target: 'http://localhost:8080', changeOrigin: true },
         '/api/data': { target: 'http://localhost:8080', changeOrigin: true },
         '/api/backup': { target: 'http://localhost:8080', changeOrigin: true },
+        // 媒体库 API（隐藏页 /fishplayer）→ 生产后端
+        '/api/media': { target: 'http://localhost:8080', changeOrigin: true },
       },
     },
   }

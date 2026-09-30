@@ -24,6 +24,7 @@
 | 历史记录 | 考试/练习完成记录（得分、正确率、耗时） |
 | AI 助手 | 侧边栏：解释题目 / 分析错误 / 总结知识点 / 生成类似题 / 自定义提问；AI 逐题解析（后台预生成） |
 | 备份 | 账号中心一键**后端备份快照** + **下载全站备份**（含用户表） |
+| 鱼播放器（隐藏页） | `/fishplayer`：播放服务器媒体库（音乐/视频）。音乐显示**专辑封面**（侧车图片或 MP3 内嵌 APIC 自动提取）与**同步歌词**（LRC，点击歌词跳转）；`/fishplayer/upload` 上传与管理（需登录）。未在导航中公开 |
 
 ---
 
@@ -110,19 +111,21 @@ cloudflared tunnel route dns quiz-tunnel hoshinonyamain.me
 quiz-platform/
 ├── server.mjs            # 生产服务器：静态托管 + 后端 API + AI 代理（入口）
 ├── server-account.mjs    # 账号/同步/备份后端（注册、登录、token、数据存取）
+├── server-media.mjs      # 媒体库后端（列表 / Range 流式播放 / 上传 / 封面上传 / 歌词 / 删除）
 ├── start.bat / start.sh  # 一键启动脚本
 ├── data/                 # ⚠ 用户数据（账号、同步数据、备份）——已被 .gitignore，严禁入库
 │   ├── users.json        #   用户表（scrypt 加盐密码哈希）
 │   ├── tokens.json       #   会话 token
 │   ├── users/<用户名>.json  # 每个用户的云端同步数据包
+│   ├── media/            #   媒体库（音乐/视频 + 封面/歌词侧车文件）
 │   └── backups/          #   后端备份快照
 ├── dist/                 # 生产构建产物（gitignore）
 ├── src/
 │   ├── components/       # QuestionCard / AnswerPanel / ExplanationPanel / AIHelper / NoteEditor / JLPTCountdown / SiteSticker 等
-│   ├── views/            # Home / Search / Exam / Practice / Result / History / WrongBook / WrongReview / Favorites / Notes / Account / Notice / JLPT*
+│   ├── views/            # Home / Search / Exam / Practice / Result / History / WrongBook / WrongReview / Favorites / Notes / Account / Notice / JLPT* / FishPlayer*
 │   ├── stores/           # Pinia：exam / practice / wrongBook / favorites / notes / history / auth / aiExplain
-│   ├── services/         # api.ts（数据层）/ search.ts（题目模糊检索索引）/ ai.ts（AI）/ account.ts（云端同步）
-│   ├── utils/            # parser.ts（题库解析）/ review.ts（艾宾浩斯算法）/ progress.ts / markdown.ts
+│   ├── services/         # api.ts（数据层）/ search.ts（题目模糊检索索引）/ ai.ts（AI）/ account.ts（云端同步）/ media.ts（媒体库）
+│   ├── utils/            # parser.ts（题库解析）/ review.ts（艾宾浩斯算法）/ progress.ts / markdown.ts / lrc.ts（歌词解析）
 │   ├── prompts/          # 学科 System Prompt（日语教师 / 编程导师 / 通用）
 │   ├── types/            # 通用 Question Schema / Exam 模型
 │   ├── layouts/          # AppLayout（导航 + 白屏兜底）
@@ -256,3 +259,51 @@ VITE_AI_MODEL=deepseek-v4-flash
 | 公网打不开 | 检查 `cloudflared tunnel run quiz-tunnel` 是否在跑、`curl localhost:8080` 是否 200 |
 | 改完数据不生效 | `npm run build` 重新构建；浏览器强刷（Ctrl+F5） |
 | 换设备同步 | 新设备打开网站 → 账号中心 → 登录同一账号，自动拉取云端数据 |
+
+---
+
+## 十、鱼播放器（隐藏页 `/fishplayer`）
+
+站点内嵌的服务器媒体库播放器，**未在导航中公开**，只能直接访问 URL：
+
+- 播放页：`/fishplayer`
+- 上传管理页：`/fishplayer/upload`（上传/改元信息/换封面/编辑歌词/删除，**需登录**）
+
+### 10.1 功能
+
+- 音乐（mp3 / m4a / flac / wav / ogg …）：专辑封面 + 播放控制（上一首/下一首/进度/音量）+ **同步歌词**
+- 视频（mp4 / webm / mkv …）：原生播放器
+- 歌词支持 LRC 时间轴：自动高亮当前行并滚动，点击任意歌词行跳转到该时间；纯文本歌词静态展示
+- 列表支持音乐/视频筛选与关键词搜索；快捷键：空格播放暂停、`Alt + ←/→` 切歌
+
+### 10.2 媒体文件与元信息
+
+文件存放在服务器 `data/media/`（已被 gitignore，属用户数据），约定同名侧车文件：
+
+```
+data/media/
+├── 夜に駆ける.mp3
+├── 夜に駆ける.meta.json      # 标题/艺术家/专辑（可自动生成）
+├── 夜に駆ける.lrc            # 歌词（LRC 或纯文本）
+└── 夜に駆ける.cover.jpg      # 专辑封面
+```
+
+- 直接把文件丢进 `data/media/` 也能被识别（标题默认取文件名）
+- **MP3 会自动读取 ID3v2 标签**：TIT2/TPE1/TALB（标题/艺术家/专辑）、APIC（内嵌封面）、USLT（内嵌歌词）
+- 上传页填写的标题/艺术家/专辑与歌词会写入侧车文件，优先级高于 ID3
+
+### 10.3 后端接口（`server-media.mjs`）
+
+| 方法 | 路径 | 说明 | 鉴权 |
+| --- | --- | --- | --- |
+| GET | `/api/media/list` | 媒体列表（含元信息、有无封面/歌词） | 公开 |
+| GET | `/api/media/file/<id>` | 媒体流（支持 Range，可拖动进度） | 公开 |
+| GET | `/api/media/cover/<id>` | 专辑封面（无则 404） | 公开 |
+| GET | `/api/media/lyrics/<id>` | 歌词文本（无则 404） | 公开 |
+| POST | `/api/media/upload?name=…` | 原始字节流上传（2GB 上限，流式落盘） | 需登录 |
+| POST | `/api/media/cover/<id>` | 上传封面 | 需登录 |
+| PUT | `/api/media/lyrics/<id>` | 保存歌词（传空则删除） | 需登录 |
+| PATCH | `/api/media/meta/<id>` | 修改标题/艺术家/专辑 | 需登录 |
+| DELETE | `/api/media/item/<id>` | 删除媒体（含侧车文件） | 需登录 |
+
+> 写接口使用站点账号的 `Authorization: Bearer <token>`（登录后自动携带）。上传体积上限：媒体 2GB、封面 10MB、歌词 512KB。
