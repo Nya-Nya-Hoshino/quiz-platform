@@ -23,7 +23,7 @@ import {
   isCacheable,
   type CacheProgress,
 } from '../services/mediaCache'
-import { activeLyricIndex, formatTime, isWordActive, looksEncrypted, parseLyrics, type LyricDoc } from '../utils/lrc'
+import { activeLyricIndex, formatTime, looksEncrypted, parseLyrics, type LyricDoc } from '../utils/lrc'
 
 /* ===== 列表 ===== */
 const items = ref<MediaItem[]>([])
@@ -428,6 +428,53 @@ const activeLine = computed(() => {
   return activeLyricIndex(doc.lines, currentTime.value)
 })
 
+/** 当前唱到的逐字下标（QRC / 增强 LRC 才有；无逐字时间轴返回 -1） */
+const activeWordIdx = computed(() => {
+  const doc = lyricsDoc.value
+  const li = activeLine.value
+  if (!doc || li < 0) return -1
+  const words = doc.lines[li].words
+  if (!words?.length) return -1
+  let idx = -1
+  for (let i = 0; i < words.length; i++) {
+    if (words[i].start <= currentTime.value + 0.02) idx = i
+    else break
+  }
+  return idx
+})
+
+/**
+ * 逐字配色（当前字与其他字形成鲜明差别）：
+ * - 正在唱的字：鲜明蓝色 + 加粗
+ * - 本行已唱过：深灰
+ * - 本行还没唱到：浅灰
+ * - 非当前行：统一中灰
+ */
+function wordClass(lineIdx: number, wordIdx: number): string {
+  if (lineIdx !== activeLine.value) return 'text-gray-400'
+  if (wordIdx === activeWordIdx.value) return 'font-semibold text-blue-600'
+  if (activeWordIdx.value >= 0 && wordIdx < activeWordIdx.value) return 'text-gray-600'
+  return 'text-gray-300'
+}
+
+/* ===== 歌词排版：靠左 / 居中（本地记忆） ===== */
+const LYRICS_ALIGN_KEY = 'quiz-platform:fishplayer-lyrics-align'
+const lyricsAlign = ref<'left' | 'center'>('left')
+try {
+  const v = localStorage.getItem(LYRICS_ALIGN_KEY)
+  if (v === 'center' || v === 'left') lyricsAlign.value = v
+} catch {
+  /* ignore */
+}
+function setLyricsAlign(v: 'left' | 'center'): void {
+  lyricsAlign.value = v
+  try {
+    localStorage.setItem(LYRICS_ALIGN_KEY, v)
+  } catch {
+    /* ignore */
+  }
+}
+
 /** 歌词格式提示（QRC 逐字 / LRC 同步 / 纯文本） */
 const lyricsLabel = computed(() => {
   const doc = lyricsDoc.value
@@ -741,9 +788,28 @@ const typeLabel = (t: string): string => (t === 'audio' ? '音乐' : '视频')
 
             <!-- 歌词 -->
             <div class="mt-4 border-t border-gray-100 pt-3">
-              <div class="mb-2 flex items-center justify-between">
+              <div class="mb-2 flex items-center justify-between gap-2">
                 <p class="text-xs font-medium text-gray-500">歌词</p>
-                <span v-if="lyricsDoc" class="text-xs text-gray-300">{{ lyricsLabel }}</span>
+                <div class="flex items-center gap-2">
+                  <span v-if="lyricsDoc" class="hidden text-xs text-gray-300 sm:inline">{{ lyricsLabel }}</span>
+                  <!-- 排版：靠左 / 居中 -->
+                  <div class="flex overflow-hidden rounded-sm border border-gray-200">
+                    <button
+                      type="button"
+                      class="px-2 py-0.5 text-[11px] transition-colors"
+                      :class="lyricsAlign === 'left' ? 'bg-blue-600 text-white' : 'text-gray-500 hover:bg-gray-50'"
+                      title="歌词靠左"
+                      @click="setLyricsAlign('left')"
+                    >靠左</button>
+                    <button
+                      type="button"
+                      class="border-l border-gray-200 px-2 py-0.5 text-[11px] transition-colors"
+                      :class="lyricsAlign === 'center' ? 'bg-blue-600 text-white' : 'text-gray-500 hover:bg-gray-50'"
+                      title="歌词居中"
+                      @click="setLyricsAlign('center')"
+                    >居中</button>
+                  </div>
+                </div>
               </div>
               <div v-if="lyricsLoading" class="py-4 text-center text-xs text-gray-300">歌词加载中…</div>
               <div
@@ -760,7 +826,8 @@ const typeLabel = (t: string): string => (t === 'audio' ? '音乐' : '视频')
               <div
                 v-else
                 ref="lyricsBox"
-                class="max-h-64 overflow-y-auto pr-1 text-sm leading-7"
+                class="font-mincho max-h-64 overflow-y-auto pr-1 text-[15px] leading-8"
+                :class="lyricsAlign === 'center' ? 'text-center' : 'text-left'"
               >
                 <p
                   v-for="(l, i) in lyricsDoc.lines"
@@ -768,20 +835,22 @@ const typeLabel = (t: string): string => (t === 'audio' ? '音乐' : '视频')
                   :data-line="i"
                   class="rounded-sm px-2 transition-colors"
                   :class="[
-                    i === activeLine ? 'bg-blue-50 text-blue-700' : 'text-gray-500',
+                    i === activeLine ? 'bg-blue-50/70' : '',
                     l.time != null ? 'cursor-pointer hover:bg-gray-50' : '',
                   ]"
                   @click="l.time != null && seek(l.time)"
                 >
-                  <!-- QRC / 增强 LRC：逐字跟随高亮 -->
+                  <!-- QRC / 增强 LRC：逐字跟随高亮（当前字与其余字颜色鲜明区分） -->
                   <template v-if="l.words?.length">
                     <span
                       v-for="(w, wi) in l.words"
                       :key="wi"
-                      :class="i === activeLine && isWordActive(w, currentTime) ? 'font-medium text-blue-700' : ''"
+                      :class="wordClass(i, wi)"
                     >{{ w.text }}</span>
                   </template>
-                  <template v-else>{{ l.text || '♪' }}</template>
+                  <template v-else>
+                    <span :class="i === activeLine ? 'text-gray-900' : 'text-gray-400'">{{ l.text || '♪' }}</span>
+                  </template>
                 </p>
               </div>
             </div>
