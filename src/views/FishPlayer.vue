@@ -82,6 +82,8 @@ const cacheState = ref<Record<string, CacheInfo>>({})
 const cacheStatsInfo = ref({ items: 0, bytes: 0 })
 /** 已完整缓存媒体的本地 Blob 地址：id → objectURL */
 const blobUrls = new Map<string, string>()
+/** 当前正在进行的缓存任务（切换曲目时中止，避免旧任务继续占用带宽） */
+let cacheAbort: AbortController | null = null
 /** 续播用的一次性地址（带 ?fresh=1，让服务端按最新长度重新冻结） */
 const srcOverride = ref('')
 /**
@@ -106,8 +108,15 @@ async function refreshCacheStats(): Promise<void> {
   }
 }
 
-/** 后台分段缓存（不影响正在播放的流；完整缓存后再次播放即本地播放） */
-async function startCache(item: MediaItem): Promise<void> {
+/**
+ * 后台分段缓存。
+ *
+ * 策略（避免抢带宽导致播放卡顿）：
+ * - 播放期间**不缓存**（此前并发全速下载会与正在播放的流抢带宽，公网隧道下尤其明显）
+ * - 暂停 / 播放结束 / 手动点击「缓存本曲」时才缓存
+ * - 串行单段 + 段间隔，切换曲目时立即中止旧任务
+ */
+async function startCache(item: MediaItem, opts: { force?: boolean } = {}): Promise<void> {
   if (blobUrls.has(item.id)) {
     cacheState.value = { ...cacheState.value, [item.id]: { status: 'cached', bytes: item.size, total: item.size } }
     return
@@ -118,34 +127,69 @@ async function startCache(item: MediaItem): Promise<void> {
   }
   const prev = cacheState.value[item.id]
   if (prev?.status === 'caching') return
+  // 播放中且非强制 → 不占用带宽，标为等待（暂停时会自动开始）
+  if (!opts.force && playing.value && !isFullyBuffered()) {
+    cacheState.value = { ...cacheState.value, [item.id]: { status: 'idle', bytes: prev?.bytes ?? 0, total: item.size } }
+    return
+  }
+  cancelCache()
+  const ac = new AbortController()
+  cacheAbort = ac
+  const forId = item.id
   cacheState.value = { ...cacheState.value, [item.id]: { status: 'caching', bytes: prev?.bytes ?? 0, total: item.size } }
   try {
-    const res = await ensureCached(item.url, item.size, (p: CacheProgress) => {
-      cacheState.value = {
-        ...cacheState.value,
-        [item.id]: { status: 'caching', bytes: p.bytes, total: p.total },
-      }
+    const res = await ensureCached(item.url, item.size, {
+      signal: ac.signal,
+      concurrency: 1,
+      gapMs: 250,
+      // 强制缓存时也允许被暂停（用户点开又在听时让路）
+      shouldPause: () => playing.value && !opts.force,
+      onProgress: (p: CacheProgress) => {
+        cacheState.value = {
+          ...cacheState.value,
+          [forId]: { status: 'caching', bytes: p.bytes, total: p.total },
+        }
+      },
     })
+    if (res.aborted || ac.signal.aborted) return
     if (!res.cached) {
-      cacheState.value = { ...cacheState.value, [item.id]: { status: 'direct', bytes: 0, total: item.size } }
+      cacheState.value = { ...cacheState.value, [forId]: { status: 'direct', bytes: 0, total: item.size } }
       return
     }
     if (res.complete) {
-      blobUrls.set(item.id, URL.createObjectURL(res.blob))
-      cacheState.value = { ...cacheState.value, [item.id]: { status: 'cached', bytes: res.bytes, total: item.size } }
+      const old = blobUrls.get(forId)
+      if (old) URL.revokeObjectURL(old)
+      blobUrls.set(forId, URL.createObjectURL(res.blob))
+      cacheState.value = { ...cacheState.value, [forId]: { status: 'cached', bytes: res.bytes, total: item.size } }
       await refreshCacheStats()
     } else {
-      // 源文件仍在补全 / 部分段暂不可用 → 保留已缓存进度，稍后随体积增长重试
-      cacheState.value = { ...cacheState.value, [item.id]: { status: 'caching', bytes: res.bytes, total: item.size } }
+      // 源文件仍在补全 / 部分段暂不可用 → 保留已缓存进度，稍后重试
+      cacheState.value = { ...cacheState.value, [forId]: { status: 'idle', bytes: res.bytes, total: item.size } }
     }
   } catch {
-    cacheState.value = { ...cacheState.value, [item.id]: { status: 'direct', bytes: 0, total: item.size } }
+    cacheState.value = { ...cacheState.value, [forId]: { status: 'idle', bytes: 0, total: item.size } }
+  } finally {
+    if (cacheAbort === ac) cacheAbort = null
   }
+}
+
+function cancelCache(): void {
+  cacheAbort?.abort()
+  cacheAbort = null
+}
+
+/** 当前媒体是否已被浏览器完整缓冲（此时再下载缓存不影响播放） */
+function isFullyBuffered(): boolean {
+  const el = isVideo.value ? videoEl.value : audioEl.value
+  if (!el || !Number.isFinite(el.duration) || !el.duration) return false
+  if (el.buffered.length === 0) return false
+  return el.buffered.end(el.buffered.length - 1) >= el.duration - 1
 }
 
 /** 清空本地缓存 */
 async function doClearCache(): Promise<void> {
   if (!window.confirm('清空本地媒体缓存？已缓存的音乐下次会重新从服务器下载。')) return
+  cancelCache()
   for (const url of blobUrls.values()) URL.revokeObjectURL(url)
   blobUrls.clear()
   cacheState.value = {}
@@ -153,6 +197,19 @@ async function doClearCache(): Promise<void> {
   await refreshCacheStats()
   if (current.value) void startCache(current.value)
 }
+
+/** 手动缓存当前曲目（用户明确要求，不等暂停） */
+function manualCache(): void {
+  if (current.value) void startCache(current.value, { force: true })
+}
+
+/** 是否显示「缓存本曲」按钮（可缓存且尚未开始/已回退直连） */
+const canManualCache = computed(() => {
+  const item = current.value
+  if (!item || !isCacheable(item.size)) return false
+  const st = cacheInfoOf(item).status
+  return st === 'idle' || st === 'direct'
+})
 
 /* ===== 源文件补全时的自动续播 ===== */
 let pollTimer: number | undefined
@@ -239,11 +296,15 @@ function selectItem(item: MediaItem): void {
   lyricsLoading.value = false
   lyricsMissing.value = false
   lyricsEncrypted.value = false
+  // 切换曲目：中止上一首的后台缓存任务
+  cancelCache()
   void loadLyrics(item)
   // 播放由用户手势或列表点击触发：切换后自动开始
-  void startPlayback()
-  // 后台分段缓存 + 补全中轮询
-  void startCache(item)
+  void startPlayback().then(() => {
+    // 播放没起来（自动播放被拦截等）→ 此刻不占用播放带宽，可以后台缓存
+    if (!playing.value) void startCache(item)
+  })
+  // 补全中轮询（只读列表，不下载）
   if (item.partial) schedulePoll()
   else stopPoll()
 }
@@ -308,9 +369,12 @@ function onLoadedMetadata(): void {
 
 function onEnded(): void {
   playing.value = false
+  const finished = current.value
+  // 播放已结束：此刻不占用播放带宽，可以后台缓存这首（下次播放即本地）
+  if (finished) void startCache(finished)
   // 源文件仍在补全：优先按最新长度续播，而不是停止/切歌
   void (async () => {
-    if (current.value?.partial) {
+    if (finished?.partial) {
       const resumed = await continueAfterGrowth()
       if (resumed) return
     }
@@ -318,9 +382,10 @@ function onEnded(): void {
   })()
 }
 
-function onStalled(): void {
-  // 缓冲中断（常见于文件正在补全或网络抖动）→ 尝试续播
-  if (current.value?.partial) void continueAfterGrowth()
+/** 暂停：不占用播放带宽，开始/继续后台分段缓存 */
+function onPause(): void {
+  playing.value = false
+  if (current.value) void startCache(current.value)
 }
 
 function onProgressInput(e: Event): void {
@@ -447,6 +512,7 @@ onMounted(async () => {
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', onKeydown)
   stopPoll()
+  cancelCache()
   for (const url of blobUrls.values()) URL.revokeObjectURL(url)
   blobUrls.clear()
 })
@@ -535,9 +601,8 @@ const typeLabel = (t: string): string => (t === 'audio' ? '音乐' : '视频')
               @timeupdate="onTimeUpdate"
               @loadedmetadata="onLoadedMetadata"
               @play="playing = true"
-              @pause="playing = false"
+              @pause="onPause"
               @ended="onEnded"
-              @stalled="onStalled"
             />
             <div class="mt-3 min-w-0">
               <p class="truncate text-sm font-medium text-gray-900">{{ current.title }}</p>
@@ -627,7 +692,7 @@ const typeLabel = (t: string): string => (t === 'audio' ? '音乐' : '视频')
                     </button>
                   </div>
 
-                  <!-- 缓存状态（分段缓存：完整缓存后本地播放，不受网络与补全影响） -->
+                  <!-- 缓存状态（暂停/结束后自动缓存；完整缓存后本地播放） -->
                   <span
                     v-if="cacheLabel"
                     class="ml-2 rounded-sm px-1.5 py-0.5 text-[11px]"
@@ -637,6 +702,13 @@ const typeLabel = (t: string): string => (t === 'audio' ? '音乐' : '视频')
                         ? 'bg-gray-100 text-gray-500'
                         : 'bg-gray-50 text-gray-400'"
                   >{{ cacheLabel }}</span>
+                  <button
+                    v-if="canManualCache"
+                    type="button"
+                    class="ml-1 rounded-sm border border-gray-300 px-2 py-0.5 text-[11px] text-gray-500 hover:bg-gray-50"
+                    title="立即把本曲分段缓存到本地（播放中会稍占带宽，暂停时缓存不影响播放）"
+                    @click="manualCache"
+                  >缓存本曲</button>
 
                   <!-- 音量 -->
                   <div class="ml-auto flex items-center gap-1.5">
@@ -723,9 +795,8 @@ const typeLabel = (t: string): string => (t === 'audio' ? '音乐' : '视频')
               @timeupdate="onTimeUpdate"
               @loadedmetadata="onLoadedMetadata"
               @play="playing = true"
-              @pause="playing = false"
+              @pause="onPause"
               @ended="onEnded"
-              @stalled="onStalled"
             />
           </div>
         </template>

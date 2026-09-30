@@ -19,8 +19,8 @@ export const SEGMENT_SIZE = 1024 * 1024
 export const MAX_ITEM_BYTES = 300 * 1024 * 1024
 /** 缓存总量上限（超出按 LRU 淘汰） */
 export const MAX_TOTAL_BYTES = 500 * 1024 * 1024
-/** 单次并发下载段数 */
-const CONCURRENCY = 3
+/** 默认并发段数：1（避免与正在播放的流抢带宽） */
+export const DEFAULT_CONCURRENCY = 1
 
 const CACHE_NAME = 'quiz-media-seg-v1'
 const META_KEY = 'quiz-platform:media-cache-meta'
@@ -142,9 +142,9 @@ async function writeSegment(url: string, start: number, end: number, blob: Blob)
   }
 }
 
-/** 用 Range 请求下载一段 */
-async function fetchSegment(url: string, start: number, end: number): Promise<Blob> {
-  const res = await fetch(url, { headers: { Range: `bytes=${start}-${end}` } })
+/** 用 Range 请求下载一段（支持取消） */
+async function fetchSegment(url: string, start: number, end: number, signal?: AbortSignal): Promise<Blob> {
+  const res = await fetch(url, { headers: { Range: `bytes=${start}-${end}` }, signal })
   if (!res.ok && res.status !== 206) {
     throw new Error(`分段下载失败（${res.status}）`)
   }
@@ -203,20 +203,39 @@ export interface CacheResult {
   complete: boolean
   /** 是否真的用上了缓存（false = 回退直连） */
   cached: boolean
+  /** 是否被中途取消（切换曲目等） */
+  aborted?: boolean
 }
+
+export interface EnsureOptions {
+  /** 取消信号（切换曲目时中止，避免旧任务继续占带宽） */
+  signal?: AbortSignal
+  /** 并发段数（默认 1：避免与正在播放的流抢带宽） */
+  concurrency?: number
+  /** 每段之间的间隔毫秒（默认 250ms，给播放流让路） */
+  gapMs?: number
+  /** 返回 true 时暂停下载（默认不暂停；播放器用它实现「播放中不抢带宽」） */
+  shouldPause?: () => boolean
+  onProgress?: (p: CacheProgress) => void
+}
+
+const sleep = (ms: number) => new Promise((r) => window.setTimeout(r, ms))
 
 /**
  * 确保媒体已按段缓存，返回可直接播放的 Blob。
  *
+ * 默认**单段串行 + 段间隔**，并支持 shouldPause/signal：
+ * 播放器在播放期间会暂停缓存任务，保证播放带宽不被后台下载抢占（此前并发 3 段全速下载会导致卡顿）。
+ *
  * @param url    媒体地址（/api/media/file/<id>）
  * @param size   服务器声明的当前体积
- * @param onProgress 进度回调（可用于显示「缓存 45%」）
  */
 export async function ensureCached(
   url: string,
   size: number,
-  onProgress?: (p: CacheProgress) => void,
+  opts: EnsureOptions = {},
 ): Promise<CacheResult> {
+  const { signal, concurrency = DEFAULT_CONCURRENCY, gapMs = 250, shouldPause, onProgress } = opts
   if (!isCacheSupported() || !Number.isFinite(size) || size <= 0 || size > MAX_ITEM_BYTES) {
     // 回退：不使用缓存（超大文件或环境不支持）
     return { blob: new Blob([]), bytes: 0, complete: false, cached: false }
@@ -226,7 +245,7 @@ export async function ensureCached(
   const parts: (Blob | null)[] = new Array(segments.length).fill(null)
   const missing: number[] = []
 
-  // 1) 先取已缓存段
+  // 1) 先取已缓存段（纯本地读取，不占带宽）
   await Promise.all(
     segments.map(async (seg, i) => {
       const hit = await readSegment(url, seg.start, seg.end)
@@ -237,35 +256,49 @@ export async function ensureCached(
   const cachedBytes = parts.reduce((s, b) => s + (b?.size ?? 0), 0)
   onProgress?.({ bytes: cachedBytes, total: size, complete: missing.length === 0 })
 
-  // 2) 并发补拉缺失段
   let done = missing.length === 0
   if (missing.length) {
     let cursor = 0
+    const waitWhilePaused = async (): Promise<void> => {
+      while (!signal?.aborted && shouldPause?.()) await sleep(300)
+    }
     const worker = async (): Promise<void> => {
       while (cursor < missing.length) {
+        if (signal?.aborted) return
+        await waitWhilePaused()
+        if (signal?.aborted) return
         const i = missing[cursor++]
         const seg = segments[i]
         try {
-          const blob = await fetchSegment(url, seg.start, seg.end)
+          const blob = await fetchSegment(url, seg.start, seg.end, signal)
           parts[i] = blob
           await writeSegment(url, seg.start, seg.end, blob)
           const bytes = parts.reduce((s, b) => s + (b?.size ?? 0), 0)
           onProgress?.({ bytes, total: size, complete: false })
-        } catch {
+        } catch (e) {
+          if ((e as Error)?.name === 'AbortError') return
           // 单段失败：保留其它已就绪段，稍后重试（补全期间服务器可能正好在写）
         }
+        // 段间隔：给正在播放的流让出带宽
+        if (gapMs > 0 && cursor < missing.length) await sleep(gapMs)
       }
     }
-    await Promise.all(Array.from({ length: Math.min(CONCURRENCY, missing.length) }, () => worker()))
+    await Promise.all(Array.from({ length: Math.max(1, Math.min(concurrency, missing.length)) }, () => worker()))
     done = parts.every((p) => p != null)
     void evictIfNeeded()
   }
 
-  // 3) 顺序拼接（跳过缺失段，保证已就绪部分可播）
+  // 2) 顺序拼接（跳过缺失段，保证已就绪部分可播）
   const usable = parts.filter((p): p is Blob => p != null)
   const bytes = usable.reduce((s, b) => s + b.size, 0)
   const blob = new Blob(usable, { type: 'application/octet-stream' })
-  return { blob, bytes, complete: done && bytes >= size, cached: true }
+  return {
+    blob,
+    bytes,
+    complete: done && bytes >= size,
+    cached: true,
+    aborted: signal?.aborted ?? false,
+  }
 }
 
 /** 媒体是否适合缓存（体积在限制内且环境支持） */
