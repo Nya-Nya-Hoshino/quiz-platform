@@ -450,12 +450,23 @@ function requireAuth(req, res) {
   return user
 }
 
-/**
- * 媒体 API 总入口。返回 true 表示已处理该请求。
- * @param {import('node:http').IncomingMessage} req
- * @param {import('node:http').ServerResponse} res
- * @param {URL} url
- */
+/** 判断文本是否像加密/二进制歌词（QQ 音乐客户端下载的 .qrc 为加密格式，无法解析） */
+function looksEncryptedText(text) {
+  if (!text) return false
+  const head = text.slice(0, 4000)
+  let bad = 0
+  let replaced = 0
+  for (const ch of head) {
+    const c = ch.codePointAt(0) ?? 0
+    if (c === 0) return true
+    if (c < 9 || (c > 13 && c < 32)) bad++
+    if (c === 0xfffd) replaced++
+  }
+  const n = Math.max(1, head.length)
+  return bad / n > 0.02 || replaced / n > 0.02
+}
+
+/** 媒体 API 总入口。返回 true 表示已处理该请求。 */
 export async function handleMediaAPI(req, res, url) {
   const path = url.pathname
   if (!path.startsWith('/api/media/')) return false
@@ -575,6 +586,12 @@ export async function handleMediaAPI(req, res, url) {
     }
     try {
       const text = await readSmallBody(req)
+      if (text.trim() && looksEncryptedText(text)) {
+        sendJson(res, 400, {
+          error: '检测到加密歌词（QQ 音乐客户端下载的 .qrc 为加密格式），无法保存；请提供未加密的 QRC / LRC 文本',
+        })
+        return true
+      }
       if (!text.trim()) {
         if (existsSync(lyricsPath(id))) unlinkSync(lyricsPath(id))
         sendJson(res, 200, { ok: true, cleared: true })

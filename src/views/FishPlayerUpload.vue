@@ -20,6 +20,7 @@ import {
   uploadMedia,
   type MediaItem,
 } from '../services/media'
+import { looksEncrypted, parseLyrics } from '../utils/lrc'
 
 const items = ref<MediaItem[]>([])
 const loading = ref(true)
@@ -157,6 +158,10 @@ async function openEditor(item: MediaItem): Promise<void> {
 async function saveEdits(): Promise<void> {
   const item = selected.value
   if (!item || editBusy.value) return
+  if (editLyrics.value.trim() && looksEncrypted(editLyrics.value)) {
+    editMsg.value = '检测到加密歌词（QQ 音乐客户端下载的 .qrc 为加密格式），请改用未加密的 QRC / LRC 文本'
+    return
+  }
   editBusy.value = true
   editMsg.value = ''
   try {
@@ -170,6 +175,37 @@ async function saveEdits(): Promise<void> {
     editMsg.value = (e as Error).message
   } finally {
     editBusy.value = false
+  }
+}
+
+/* ===== 导入歌词文件（.lrc / .qrc / .txt）===== */
+const lyricsFileInput = ref<HTMLInputElement | null>(null)
+
+function pickLyricsFile(): void {
+  lyricsFileInput.value?.click()
+}
+
+async function onLyricsFilePicked(e: Event): Promise<void> {
+  const input = e.target as HTMLInputElement
+  const file = input.files?.[0]
+  input.value = ''
+  if (!file) return
+  try {
+    const text = await file.text()
+    if (!text.trim()) {
+      editMsg.value = '文件内容为空'
+      return
+    }
+    if (looksEncrypted(text)) {
+      editMsg.value = '该文件是加密歌词（QQ 音乐客户端下载的 .qrc 为加密格式），无法解析；请在 QQ 音乐中复制歌词文本后粘贴，或使用未加密的 QRC / LRC'
+      return
+    }
+    editLyrics.value = text
+    const doc = parseLyrics(text)
+    const fmt = doc.format === 'qrc' ? 'QRC（逐字）' : doc.format === 'lrc' ? 'LRC' : '纯文本'
+    editMsg.value = `已导入歌词文件：${file.name} · 识别为 ${fmt} · 共 ${doc.lines.length} 行`
+  } catch (err) {
+    editMsg.value = `读取失败：${(err as Error).message}`
   }
 }
 
@@ -392,12 +428,12 @@ const videoCount = computed(() => items.value.filter((m) => m.type === 'video').
         </div>
 
         <label class="mt-3 block text-xs text-gray-500">
-          歌词（LRC 或纯文本，留空则删除歌词）
+          歌词（支持 LRC / QRC / 纯文本，留空则删除歌词）
           <textarea
             v-model="editLyrics"
             rows="6"
             class="mt-1 w-full resize-y rounded-sm border border-gray-300 px-2.5 py-2 font-mono text-xs outline-none focus:border-blue-500"
-            placeholder="[00:12.34] 第一句歌词&#10;[00:16.78] 第二句歌词"
+            placeholder="LRC：[00:12.34] 一句歌词&#10;QRC（QQ音乐逐字）：[0,5000]一句歌词(0,800)逐字(800,1200)…&#10;纯文本：直接一行一句"
           />
         </label>
 
@@ -408,6 +444,13 @@ const videoCount = computed(() => items.value.filter((m) => m.type === 'video').
             :disabled="editBusy"
             @click="saveEdits"
           >{{ editBusy ? '保存中…' : '保存' }}</button>
+          <button
+            type="button"
+            class="rounded-sm border border-gray-300 px-3 py-1.5 text-xs text-gray-600 hover:bg-white"
+            :disabled="editBusy"
+            @click="pickLyricsFile"
+          >导入歌词文件</button>
+          <input ref="lyricsFileInput" type="file" accept=".lrc,.qrc,.txt,text/plain" class="hidden" @change="onLyricsFilePicked" />
           <button
             type="button"
             class="rounded-sm border border-gray-300 px-3 py-1.5 text-xs text-gray-600 hover:bg-white"

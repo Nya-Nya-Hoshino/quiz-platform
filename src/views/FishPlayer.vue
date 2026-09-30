@@ -11,7 +11,7 @@
  */
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { fetchLyrics, fetchMediaList, formatSize, type MediaItem } from '../services/media'
-import { activeLyricIndex, formatTime, parseLyrics, type LyricDoc } from '../utils/lrc'
+import { activeLyricIndex, formatTime, isWordActive, looksEncrypted, parseLyrics, type LyricDoc } from '../utils/lrc'
 
 /* ===== 列表 ===== */
 const items = ref<MediaItem[]>([])
@@ -68,6 +68,7 @@ function selectItem(item: MediaItem): void {
   lyricsDoc.value = null
   lyricsLoading.value = false
   lyricsMissing.value = false
+  lyricsEncrypted.value = false
   void loadLyrics(item)
   // 播放由用户手势或列表点击触发：切换后自动开始
   void startPlayback()
@@ -165,6 +166,8 @@ function toggleMute(): void {
 const lyricsDoc = ref<LyricDoc | null>(null)
 const lyricsLoading = ref(false)
 const lyricsMissing = ref(false)
+/** 歌词为加密格式（QQ 音乐 .qrc）无法解析 */
+const lyricsEncrypted = ref(false)
 const lyricsBox = ref<HTMLElement | null>(null)
 const lyricsCache = new Map<string, LyricDoc | null>()
 
@@ -172,6 +175,19 @@ const activeLine = computed(() => {
   const doc = lyricsDoc.value
   if (!doc || !doc.synced) return -1
   return activeLyricIndex(doc.lines, currentTime.value)
+})
+
+/** 歌词格式提示（QRC 逐字 / LRC 同步 / 纯文本） */
+const lyricsLabel = computed(() => {
+  const doc = lyricsDoc.value
+  if (!doc) return ''
+  if (doc.format === 'qrc') return 'QRC 逐字歌词 · 点击行可跳转'
+  if (doc.synced) {
+    return doc.lines.some((l) => l.words?.length)
+      ? '增强 LRC 逐字歌词 · 点击行可跳转'
+      : 'LRC 同步歌词 · 点击歌词可跳转'
+  }
+  return '纯文本歌词（无时间轴）'
 })
 
 async function loadLyrics(item: MediaItem): Promise<void> {
@@ -182,6 +198,7 @@ async function loadLyrics(item: MediaItem): Promise<void> {
     return
   }
   lyricsLoading.value = true
+  lyricsEncrypted.value = false
   try {
     const text = await fetchLyrics(item.id)
     if (!text.trim()) {
@@ -190,11 +207,22 @@ async function loadLyrics(item: MediaItem): Promise<void> {
       lyricsMissing.value = true
       return
     }
+    // 加密歌词（QQ 音乐客户端 .qrc）无法解析，给出明确提示而不是显示乱码
+    if (looksEncrypted(text)) {
+      lyricsCache.set(item.id, null)
+      if (current.value?.id === item.id) {
+        lyricsDoc.value = null
+        lyricsMissing.value = false
+        lyricsEncrypted.value = true
+      }
+      return
+    }
     const doc = parseLyrics(text)
     lyricsCache.set(item.id, doc)
     if (current.value?.id === item.id) {
       lyricsDoc.value = doc
       lyricsMissing.value = false
+      lyricsEncrypted.value = false
     }
   } catch {
     lyricsMissing.value = true
@@ -239,9 +267,7 @@ const typeLabel = (t: string): string => (t === 'audio' ? '音乐' : '视频')
     <!-- 头部 -->
     <div class="mb-4 flex items-start justify-between gap-3">
       <div>
-        <h1 class="flex items-center gap-2 text-lg font-semibold text-gray-900">
-          <span class="text-base">🐟</span> 鱼播放器
-        </h1>
+        <h1 class="text-lg font-semibold text-gray-900">网页媒体播放器</h1>
         <p class="mt-1 text-xs text-gray-400">
           服务器媒体库 · 共 {{ items.length }} 项（{{ audioCount }} 音乐 / {{ videoCount }} 视频）
           <span class="ml-1 text-gray-300">· 隐藏页，未在导航中公开</span>
@@ -328,56 +354,84 @@ const typeLabel = (t: string): string => (t === 'audio' ? '音乐' : '视频')
                   <span v-if="current.album">{{ current.album }} · </span>{{ current.ext.toUpperCase() }} · {{ formatSize(current.size) }}
                 </p>
 
-                <!-- 控制条 -->
-                <div class="mt-3 flex items-center gap-2">
-                  <button
-                    type="button"
-                    class="flex h-8 w-8 items-center justify-center rounded-sm border border-gray-300 text-gray-600 hover:bg-gray-50"
-                    title="上一首（Alt + ←）"
-                    @click="step(-1)"
-                  >⏮</button>
-                  <button
-                    type="button"
-                    class="flex h-9 w-9 items-center justify-center rounded-sm bg-blue-600 text-white hover:bg-blue-700"
-                    :title="playing ? '暂停（空格）' : '播放（空格）'"
-                    @click="togglePlay"
-                  >{{ playing ? '❚❚' : '▶' }}</button>
-                  <button
-                    type="button"
-                    class="flex h-8 w-8 items-center justify-center rounded-sm border border-gray-300 text-gray-600 hover:bg-gray-50"
-                    title="下一首（Alt + →）"
-                    @click="step(1)"
-                  >⏭</button>
-
-                  <div class="ml-1 flex flex-1 items-center gap-2">
-                    <span class="w-9 text-right text-xs tabular-nums text-gray-400">{{ formatTime(currentTime) }}</span>
-                    <input
-                      type="range"
-                      class="h-1 flex-1 cursor-pointer accent-blue-600"
-                      min="0"
-                      :max="duration || 0"
-                      step="0.1"
-                      :value="currentTime"
-                      @input="onProgressInput"
-                    />
-                    <span class="w-9 text-xs tabular-nums text-gray-400">{{ formatTime(duration) }}</span>
-                  </div>
-
-                  <button
-                    type="button"
-                    class="text-sm text-gray-400 hover:text-gray-600"
-                    :title="muted ? '取消静音' : '静音'"
-                    @click="toggleMute"
-                  >{{ muted ? '🔇' : '🔉' }}</button>
+                <!-- 进度条 -->
+                <div class="mt-4 flex items-center gap-2">
+                  <span class="w-9 text-right text-[11px] tabular-nums text-gray-400">{{ formatTime(currentTime) }}</span>
                   <input
                     type="range"
-                    class="h-1 w-16 cursor-pointer accent-blue-600"
+                    class="h-1 flex-1 cursor-pointer accent-blue-600"
                     min="0"
-                    max="1"
-                    step="0.01"
-                    :value="muted ? 0 : volume"
-                    @input="onVolumeInput"
+                    :max="duration || 0"
+                    step="0.1"
+                    :value="currentTime"
+                    @input="onProgressInput"
                   />
+                  <span class="w-9 text-[11px] tabular-nums text-gray-400">{{ formatTime(duration) }}</span>
+                </div>
+
+                <!-- 播放控制 -->
+                <div class="mt-2 flex items-center">
+                  <div class="flex items-center gap-1">
+                    <button
+                      type="button"
+                      class="flex h-9 w-9 items-center justify-center rounded-full text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-800"
+                      title="上一首（Alt + ←）"
+                      @click="step(-1)"
+                    >
+                      <svg viewBox="0 0 24 24" class="h-5 w-5" fill="currentColor" aria-hidden="true">
+                        <path d="M6 6h2v12H6zM20 6v12l-8.5-6z" />
+                      </svg>
+                    </button>
+                    <button
+                      type="button"
+                      class="flex h-10 w-10 items-center justify-center rounded-full bg-blue-600 text-white transition-colors hover:bg-blue-700"
+                      :title="playing ? '暂停（空格）' : '播放（空格）'"
+                      @click="togglePlay"
+                    >
+                      <svg v-if="!playing" viewBox="0 0 24 24" class="ml-0.5 h-5 w-5" fill="currentColor" aria-hidden="true">
+                        <path d="M8 5v14l11-7z" />
+                      </svg>
+                      <svg v-else viewBox="0 0 24 24" class="h-5 w-5" fill="currentColor" aria-hidden="true">
+                        <path d="M7 5h4v14H7zM13 5h4v14h-4z" />
+                      </svg>
+                    </button>
+                    <button
+                      type="button"
+                      class="flex h-9 w-9 items-center justify-center rounded-full text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-800"
+                      title="下一首（Alt + →）"
+                      @click="step(1)"
+                    >
+                      <svg viewBox="0 0 24 24" class="h-5 w-5" fill="currentColor" aria-hidden="true">
+                        <path d="M16 6h2v12h-2zM4 6l8.5 6L4 18z" />
+                      </svg>
+                    </button>
+                  </div>
+
+                  <!-- 音量 -->
+                  <div class="ml-auto flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      class="flex h-8 w-8 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+                      :title="muted ? '取消静音' : '静音'"
+                      @click="toggleMute"
+                    >
+                      <svg v-if="muted" viewBox="0 0 24 24" class="h-5 w-5" fill="currentColor" aria-hidden="true">
+                        <path d="M16.5 12A4.5 4.5 0 0 0 14 7.97v2.21l2.45 2.45c.03-.2.05-.41.05-.63zM19 12c0 .94-.2 1.82-.54 2.64l1.51 1.51A8.8 8.8 0 0 0 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3 3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4 9.91 6.09 12 8.18V4z" />
+                      </svg>
+                      <svg v-else viewBox="0 0 24 24" class="h-5 w-5" fill="currentColor" aria-hidden="true">
+                        <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3A4.5 4.5 0 0 0 14 7.97v8.05A4.47 4.47 0 0 0 16.5 12zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z" />
+                      </svg>
+                    </button>
+                    <input
+                      type="range"
+                      class="h-1 w-20 cursor-pointer accent-blue-600"
+                      min="0"
+                      max="1"
+                      step="0.01"
+                      :value="muted ? 0 : volume"
+                      @input="onVolumeInput"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
@@ -386,14 +440,20 @@ const typeLabel = (t: string): string => (t === 'audio' ? '音乐' : '视频')
             <div class="mt-4 border-t border-gray-100 pt-3">
               <div class="mb-2 flex items-center justify-between">
                 <p class="text-xs font-medium text-gray-500">歌词</p>
-                <span v-if="lyricsDoc?.synced" class="text-xs text-gray-300">点击歌词可跳转</span>
-                <span v-else-if="lyricsDoc" class="text-xs text-gray-300">纯文本歌词（无时间轴）</span>
+                <span v-if="lyricsDoc" class="text-xs text-gray-300">{{ lyricsLabel }}</span>
               </div>
               <div v-if="lyricsLoading" class="py-4 text-center text-xs text-gray-300">歌词加载中…</div>
               <div
+                v-else-if="lyricsEncrypted"
+                class="rounded-sm border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-700"
+              >
+                这首歌的歌词是<b>加密格式</b>（QQ 音乐客户端下载的 .qrc），无法解析显示。<br />
+                请在 QQ 音乐中复制歌词文本，或改用未加密的 QRC / LRC，在上传管理页重新保存。
+              </div>
+              <div
                 v-else-if="!lyricsDoc"
                 class="py-4 text-center text-xs text-gray-300"
-              >暂无歌词{{ lyricsMissing ? '（可在上传管理页添加 .lrc）' : '' }}</div>
+              >暂无歌词{{ lyricsMissing ? '（可在上传管理页添加 LRC / QRC 歌词）' : '' }}</div>
               <div
                 v-else
                 ref="lyricsBox"
@@ -405,11 +465,21 @@ const typeLabel = (t: string): string => (t === 'audio' ? '音乐' : '视频')
                   :data-line="i"
                   class="rounded-sm px-2 transition-colors"
                   :class="[
-                    i === activeLine ? 'bg-blue-50 font-medium text-blue-700' : 'text-gray-500',
+                    i === activeLine ? 'bg-blue-50 text-blue-700' : 'text-gray-500',
                     l.time != null ? 'cursor-pointer hover:bg-gray-50' : '',
                   ]"
                   @click="l.time != null && seek(l.time)"
-                >{{ l.text || '♪' }}</p>
+                >
+                  <!-- QRC / 增强 LRC：逐字跟随高亮 -->
+                  <template v-if="l.words?.length">
+                    <span
+                      v-for="(w, wi) in l.words"
+                      :key="wi"
+                      :class="i === activeLine && isWordActive(w, currentTime) ? 'font-medium text-blue-700' : ''"
+                    >{{ w.text }}</span>
+                  </template>
+                  <template v-else>{{ l.text || '♪' }}</template>
+                </p>
               </div>
             </div>
 
