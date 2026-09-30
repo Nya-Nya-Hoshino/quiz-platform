@@ -86,6 +86,35 @@ const MAX_MEDIA_BYTES = 2 * 1024 * 1024 * 1024
 const MAX_COVER_BYTES = 10 * 1024 * 1024
 const MAX_TEXT_BYTES = 512 * 1024
 
+/* ==================== 播放一致性（分段缓存配套） ==================== */
+
+/**
+ * 播放期长度冻结：同一媒体在一次播放会话内保持 `Content-Length` / `Content-Range` 不变。
+ * 文件仍在被补全（复制/下载中）时体积会持续变大，若长度随之跳变，浏览器会中途中断播放；
+ * 冻结后只按首次声明的长度提供字节，客户端越过该长度请求时（说明已在补全后续播）再扩展窗口。
+ */
+const frozenLength = new Map() // id → { size, at, mtime, etag }
+/** 冻结有效期：超过则下次请求重新取当前长度 */
+const FREEZE_TTL = 15 * 60 * 1000
+/** 文件停止写入多久后视为「已就绪」 */
+const STABLE_WINDOW = 3000
+/** 就绪探测记录：id → { size, mtimeMs, since } */
+const fileProbe = new Map()
+
+/** 文件是否已停止写入（未就绪 = 仍在补全） */
+function isReady(id, st) {
+  const now = Date.now()
+  const prev = fileProbe.get(id)
+  const changed = !prev || prev.size !== st.size || prev.mtimeMs !== st.mtimeMs
+  if (changed) fileProbe.set(id, { size: st.size, mtimeMs: st.mtimeMs, since: now })
+  // 就绪条件（满足其一即可）：
+  // 1) 最后写入已超过稳定窗口（文件早就写完）—— 避免服务器刚启动时把老文件误判为补全中
+  // 2) 本次观测到体积/修改时间连续稳定超过窗口
+  const mtimeOld = now - st.mtimeMs >= STABLE_WINDOW
+  const observedStable = !changed && now - (prev?.since ?? now) >= STABLE_WINDOW
+  return mtimeOld || observedStable
+}
+
 /* ==================== 工具 ==================== */
 
 function sendJson(res, status, data) {
@@ -326,6 +355,7 @@ function listMedia() {
     if (!st.isFile()) continue
     const id3 = ext === '.mp3' ? readId3(filePath) : null
     const meta = resolveMeta(id, filePath, id3)
+    const ready = isReady(id, st)
     items.push({
       id,
       type: AUDIO_EXT.has(ext) ? 'audio' : 'video',
@@ -336,6 +366,8 @@ function listMedia() {
       artist: meta.artist,
       album: meta.album,
       addedAt: meta.addedAt,
+      ready,
+      partial: !ready,
       hasCover: findCoverFile(id) != null || Boolean(id3?.picture),
       hasLyrics: existsSync(lyricsPath(id)) || Boolean(id3?.lyrics),
       url: `/api/media/file/${encodeURIComponent(id)}`,
@@ -350,47 +382,106 @@ function listMedia() {
 
 /* ==================== 流式播放（Range） ==================== */
 
-async function serveFile(req, res, id) {
+async function serveFile(req, res, id, url) {
   const filePath = findMediaFile(id)
   if (!filePath) {
     sendJson(res, 404, { error: '媒体不存在' })
     return
   }
   const st = await stat(filePath)
-  const total = st.size
+  const now = Date.now()
+  const ready = isReady(id, st)
   const ext = extname(filePath).toLowerCase()
+
+  // `?fresh=1`（或 X-Media-Refresh: 1）：客户端明确要求「按当前最新长度重新冻结」
+  // 用于文件补全后接着播；不带该参数时，同一播放会话内长度保持一致，避免中途跳变中断
+  const wantFresh =
+    url?.searchParams?.get('fresh') === '1' || String(req.headers['x-media-refresh'] ?? '') === '1'
+
+  // 先解析 Range，判断客户端是否在请求「补全后新增」的数据
+  const rangeHeader = String(req.headers.range ?? '').trim()
+  const rm = /^bytes=(\d*)-(\d*)$/.exec(rangeHeader)
+  const reqStart = rm && rm[1] ? Number.parseInt(rm[1], 10) : null
+
+  let frozen = frozenLength.get(id)
+  // 显式刷新 / 无 Range（新一次完整播放）/ 冻结过期 / 文件被重写变短 → 解冻重新取长度
+  if (frozen && (wantFresh || !rm || now - frozen.at > FREEZE_TTL || st.size < frozen.size)) {
+    frozenLength.delete(id)
+    frozen = null
+  }
+  // 客户端越过原冻结末尾请求（文件已补全）= 扩展冻结窗口
+  if (frozen && reqStart != null && reqStart >= frozen.size && st.size > frozen.size) {
+    frozen = null
+  }
+  if (!frozen) {
+    frozen = { size: st.size, at: now, mtime: st.mtimeMs, etag: `"${Math.round(st.mtimeMs)}-${st.size}"` }
+    frozenLength.set(id, frozen)
+  }
+  const total = frozen.size
   const type = MIME[ext] ?? 'application/octet-stream'
-  const range = req.headers.range
-  if (range) {
-    const m = /^bytes=(\d*)-(\d*)$/.exec(String(range).trim())
-    if (m) {
-      let start = m[1] ? Number.parseInt(m[1], 10) : 0
-      let end = m[2] ? Number.parseInt(m[2], 10) : total - 1
-      if (!Number.isFinite(start) || start < 0) start = 0
-      if (!Number.isFinite(end) || end >= total) end = total - 1
-      if (start > end) {
-        res.writeHead(416, { 'Content-Range': `bytes */${total}` })
-        res.end()
-        return
-      }
-      res.writeHead(206, {
-        'Content-Type': type,
-        'Content-Range': `bytes ${start}-${end}/${total}`,
-        'Accept-Ranges': 'bytes',
-        'Content-Length': end - start + 1,
-        'Cache-Control': 'public, max-age=3600',
-      })
-      createReadStream(filePath, { start, end }).pipe(res)
+
+  // 空文件（或刚创建还未写入）：直接回 0 字节
+  if (total <= 0) {
+    res.writeHead(200, {
+      'Content-Type': type,
+      'Content-Length': 0,
+      'Accept-Ranges': 'bytes',
+      'Cache-Control': 'no-cache',
+      'X-Media-Size': '0',
+      'X-Media-Ready': '0',
+    })
+    res.end()
+    return
+  }
+
+  const baseHeaders = {
+    'Content-Type': type,
+    'Accept-Ranges': 'bytes',
+    ETag: frozen.etag,
+    'Last-Modified': new Date(frozen.mtime).toUTCString(),
+    // 未就绪（仍在补全）不缓存，避免客户端拿到过期/不完整副本
+    'Cache-Control': ready ? 'public, max-age=86400' : 'no-cache',
+    'X-Media-Size': String(total),
+    'X-Media-Ready': ready ? '1' : '0',
+  }
+
+  // If-Range 不匹配（文件已更新）→ 按规范忽略 Range，返回完整内容
+  const ifRange = String(req.headers['if-range'] ?? '').trim()
+  const rangeOk =
+    Boolean(rm) && (!ifRange || ifRange === frozen.etag || ifRange === new Date(frozen.mtime).toUTCString())
+
+  const isHead = req.method === 'HEAD'
+
+  if (rangeOk && rm) {
+    let start = rm[1] ? Number.parseInt(rm[1], 10) : 0
+    let end = rm[2] ? Number.parseInt(rm[2], 10) : total - 1
+    if (!Number.isFinite(start) || start < 0) start = 0
+    if (!Number.isFinite(end) || end >= total) end = total - 1
+    if (start > end) {
+      res.writeHead(416, { ...baseHeaders, 'Content-Range': `bytes */${total}` })
+      res.end()
       return
     }
+    res.writeHead(206, {
+      ...baseHeaders,
+      'Content-Range': `bytes ${start}-${end}/${total}`,
+      'Content-Length': end - start + 1,
+    })
+    if (isHead) {
+      res.end()
+      return
+    }
+    createReadStream(filePath, { start, end }).pipe(res)
+    return
   }
-  res.writeHead(200, {
-    'Content-Type': type,
-    'Content-Length': total,
-    'Accept-Ranges': 'bytes',
-    'Cache-Control': 'public, max-age=3600',
-  })
-  createReadStream(filePath).pipe(res)
+
+  // 完整响应：严格只读到冻结长度（文件正在补全时不会多读，保证 Content-Length 一致）
+  res.writeHead(200, { ...baseHeaders, 'Content-Length': total })
+  if (isHead) {
+    res.end()
+    return
+  }
+  createReadStream(filePath, { start: 0, end: total - 1 }).pipe(res)
 }
 
 /* ==================== 上传 / 修改 / 删除 ==================== */
@@ -481,7 +572,7 @@ export async function handleMediaAPI(req, res, url) {
   // ===== 媒体流 =====
   const mFile = /^\/api\/media\/file\/(.+)$/.exec(path)
   if (mFile && (method === 'GET' || method === 'HEAD')) {
-    await serveFile(req, res, safeId(decodeURIComponent(mFile[1])))
+    await serveFile(req, res, safeId(decodeURIComponent(mFile[1])), url)
     return true
   }
 

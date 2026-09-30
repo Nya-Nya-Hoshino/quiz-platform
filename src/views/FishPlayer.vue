@@ -1,16 +1,28 @@
 <script setup lang="ts">
 /**
- * 鱼播放器（隐藏页 /fishplayer）
+ * 网页媒体播放器（隐藏页 /fishplayer）
  *
  * 播放服务器端媒体库（音乐/视频）：
- * - 音乐：专辑封面 + 播放控制 + 同步歌词（LRC，可点击歌词跳转）
+ * - 音乐：专辑封面 + 播放控制 + 同步歌词（LRC / QRC，可点击歌词跳转）
  * - 视频：原生播放器
  * - 列表：音乐/视频筛选 + 关键词搜索
  *
+ * 防中断设计（分段缓存）：
+ * - 播放直连服务器（服务端对同一媒体「冻结长度」，文件边补全边播也不会因长度跳变中断）
+ * - 后台把媒体按 1 MiB 分段缓存到 Cache Storage；完整缓存后再次播放即完全本地、零网络依赖
+ * - 源文件仍在补全时：到达当前可用末尾会自动按最新长度重新取源并保留进度续播（不是中断停止）
+ *
  * 上传与管理见隐藏页 /fishplayer/upload。
  */
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { fetchLyrics, fetchMediaList, formatSize, type MediaItem } from '../services/media'
+import {
+  cacheStats,
+  clearMediaCache,
+  ensureCached,
+  isCacheable,
+  type CacheProgress,
+} from '../services/mediaCache'
 import { activeLyricIndex, formatTime, isWordActive, looksEncrypted, parseLyrics, type LyricDoc } from '../utils/lrc'
 
 /* ===== 列表 ===== */
@@ -60,11 +72,169 @@ const coverFailed = ref(false)
 const coverUrl = computed(() => (current.value && !coverFailed.value ? current.value.coverUrl : ''))
 const isVideo = computed(() => current.value?.type === 'video')
 
+/* ===== 分段缓存状态 ===== */
+interface CacheInfo {
+  status: 'idle' | 'caching' | 'cached' | 'direct'
+  bytes: number
+  total: number
+}
+const cacheState = ref<Record<string, CacheInfo>>({})
+const cacheStatsInfo = ref({ items: 0, bytes: 0 })
+/** 已完整缓存媒体的本地 Blob 地址：id → objectURL */
+const blobUrls = new Map<string, string>()
+/** 续播用的一次性地址（带 ?fresh=1，让服务端按最新长度重新冻结） */
+const srcOverride = ref('')
+/**
+ * 本次播放实际使用的地址快照。
+ * 只在「选中曲目」时决定（已完整缓存 → 本地 Blob；否则直连服务器）。
+ * 刻意不在缓存完成时替换 —— 中途换 src 会让浏览器重新加载、打断当前播放。
+ */
+const activeSrc = ref('')
+
+/** 播放地址：续播覆盖 > 选中时确定的地址 */
+const playSrc = computed(() => srcOverride.value || activeSrc.value)
+
+function cacheInfoOf(item: MediaItem): CacheInfo {
+  return cacheState.value[item.id] ?? { status: 'idle', bytes: 0, total: item.size }
+}
+
+async function refreshCacheStats(): Promise<void> {
+  try {
+    cacheStatsInfo.value = await cacheStats()
+  } catch {
+    /* ignore */
+  }
+}
+
+/** 后台分段缓存（不影响正在播放的流；完整缓存后再次播放即本地播放） */
+async function startCache(item: MediaItem): Promise<void> {
+  if (blobUrls.has(item.id)) {
+    cacheState.value = { ...cacheState.value, [item.id]: { status: 'cached', bytes: item.size, total: item.size } }
+    return
+  }
+  if (!isCacheable(item.size)) {
+    cacheState.value = { ...cacheState.value, [item.id]: { status: 'direct', bytes: 0, total: item.size } }
+    return
+  }
+  const prev = cacheState.value[item.id]
+  if (prev?.status === 'caching') return
+  cacheState.value = { ...cacheState.value, [item.id]: { status: 'caching', bytes: prev?.bytes ?? 0, total: item.size } }
+  try {
+    const res = await ensureCached(item.url, item.size, (p: CacheProgress) => {
+      cacheState.value = {
+        ...cacheState.value,
+        [item.id]: { status: 'caching', bytes: p.bytes, total: p.total },
+      }
+    })
+    if (!res.cached) {
+      cacheState.value = { ...cacheState.value, [item.id]: { status: 'direct', bytes: 0, total: item.size } }
+      return
+    }
+    if (res.complete) {
+      blobUrls.set(item.id, URL.createObjectURL(res.blob))
+      cacheState.value = { ...cacheState.value, [item.id]: { status: 'cached', bytes: res.bytes, total: item.size } }
+      await refreshCacheStats()
+    } else {
+      // 源文件仍在补全 / 部分段暂不可用 → 保留已缓存进度，稍后随体积增长重试
+      cacheState.value = { ...cacheState.value, [item.id]: { status: 'caching', bytes: res.bytes, total: item.size } }
+    }
+  } catch {
+    cacheState.value = { ...cacheState.value, [item.id]: { status: 'direct', bytes: 0, total: item.size } }
+  }
+}
+
+/** 清空本地缓存 */
+async function doClearCache(): Promise<void> {
+  if (!window.confirm('清空本地媒体缓存？已缓存的音乐下次会重新从服务器下载。')) return
+  for (const url of blobUrls.values()) URL.revokeObjectURL(url)
+  blobUrls.clear()
+  cacheState.value = {}
+  await clearMediaCache()
+  await refreshCacheStats()
+  if (current.value) void startCache(current.value)
+}
+
+/* ===== 源文件补全时的自动续播 ===== */
+let pollTimer: number | undefined
+let continuing = false
+
+function stopPoll(): void {
+  if (pollTimer) {
+    window.clearInterval(pollTimer)
+    pollTimer = undefined
+  }
+}
+
+function schedulePoll(): void {
+  if (pollTimer) return
+  pollTimer = window.setInterval(() => void pollOnce(), 4000)
+}
+
+/** 轮询：文件体积增长则补缓存；补全完成后停止轮询 */
+async function pollOnce(): Promise<void> {
+  const item = current.value
+  if (!item) return stopPoll()
+  try {
+    const list = await fetchMediaList()
+    items.value = list
+    const fresh = list.find((m) => m.id === item.id)
+    if (!fresh) return stopPoll()
+    const grew = fresh.size !== item.size
+    current.value = fresh
+    if (grew) void startCache(fresh)
+    if (fresh.ready) {
+      stopPoll()
+      if (grew) void startCache(fresh)
+    }
+  } catch {
+    /* 网络失败：下一轮再试 */
+  }
+}
+
+/**
+ * 到达当前可用末尾时按最新长度重新取源、保留进度继续播放。
+ * 返回 true 表示已续播（调用方不要再切歌）。
+ */
+async function continueAfterGrowth(): Promise<boolean> {
+  const item = current.value
+  if (!item || continuing) return false
+  continuing = true
+  try {
+    const list = await fetchMediaList()
+    items.value = list
+    const fresh = list.find((m) => m.id === item.id)
+    if (!fresh || fresh.size <= item.size) return false
+    current.value = fresh
+    const el = isVideo.value ? videoEl.value : audioEl.value
+    const pos = Math.max(0, (el?.currentTime ?? 0) - 0.3)
+    // 显式要求服务端按最新长度重新冻结（否则同一次会话内长度保持不变，无法读到新增数据）
+    srcOverride.value = `${fresh.url}?fresh=${Date.now()}`
+    await nextTick()
+    await new Promise((r) => window.setTimeout(r, 40))
+    const el2 = isVideo.value ? videoEl.value : audioEl.value
+    if (!el2) return false
+    el2.currentTime = pos
+    await el2.play().catch(() => {
+      playing.value = false
+    })
+    playing.value = true
+    void startCache(fresh)
+    return true
+  } catch {
+    return false
+  } finally {
+    continuing = false
+  }
+}
+
 function selectItem(item: MediaItem): void {
   current.value = item
   coverFailed.value = false
   currentTime.value = 0
   duration.value = 0
+  srcOverride.value = ''
+  // 选中时决定播放源：已完整缓存 → 本地 Blob（零网络、不受补全影响），否则直连
+  activeSrc.value = blobUrls.get(item.id) ?? item.url
   lyricsDoc.value = null
   lyricsLoading.value = false
   lyricsMissing.value = false
@@ -72,6 +242,10 @@ function selectItem(item: MediaItem): void {
   void loadLyrics(item)
   // 播放由用户手势或列表点击触发：切换后自动开始
   void startPlayback()
+  // 后台分段缓存 + 补全中轮询
+  void startCache(item)
+  if (item.partial) schedulePoll()
+  else stopPoll()
 }
 
 watch(
@@ -134,7 +308,19 @@ function onLoadedMetadata(): void {
 
 function onEnded(): void {
   playing.value = false
-  step(1)
+  // 源文件仍在补全：优先按最新长度续播，而不是停止/切歌
+  void (async () => {
+    if (current.value?.partial) {
+      const resumed = await continueAfterGrowth()
+      if (resumed) return
+    }
+    step(1)
+  })()
+}
+
+function onStalled(): void {
+  // 缓冲中断（常见于文件正在补全或网络抖动）→ 尝试续播
+  if (current.value?.partial) void continueAfterGrowth()
 }
 
 function onProgressInput(e: Event): void {
@@ -255,9 +441,29 @@ function onKeydown(e: KeyboardEvent): void {
 onMounted(async () => {
   applyVolume()
   window.addEventListener('keydown', onKeydown)
+  void refreshCacheStats()
   await load()
 })
-onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', onKeydown)
+  stopPoll()
+  for (const url of blobUrls.values()) URL.revokeObjectURL(url)
+  blobUrls.clear()
+})
+
+/** 缓存状态文案（控制条徽标） */
+const cacheLabel = computed(() => {
+  const item = current.value
+  if (!item) return ''
+  const info = cacheInfoOf(item)
+  if (info.status === 'cached') return '已缓存'
+  if (info.status === 'caching') {
+    const pct = info.total ? Math.min(99, Math.round((info.bytes / info.total) * 100)) : 0
+    return `缓存 ${pct}%`
+  }
+  if (info.status === 'direct') return '直连'
+  return ''
+})
 
 const typeLabel = (t: string): string => (t === 'audio' ? '音乐' : '视频')
 </script>
@@ -274,6 +480,15 @@ const typeLabel = (t: string): string => (t === 'audio' ? '音乐' : '视频')
         </p>
       </div>
       <div class="flex flex-shrink-0 items-center gap-2">
+        <span v-if="cacheStatsInfo.items" class="text-xs text-gray-400">
+          本地缓存 {{ cacheStatsInfo.items }} 项 · {{ formatSize(cacheStatsInfo.bytes) }}
+        </span>
+        <button
+          v-if="cacheStatsInfo.items"
+          type="button"
+          class="rounded-sm border border-gray-300 px-2.5 py-1.5 text-xs text-gray-500 hover:bg-gray-50"
+          @click="doClearCache"
+        >清缓存</button>
         <button
           type="button"
           class="rounded-sm border border-gray-300 px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-50"
@@ -313,7 +528,7 @@ const typeLabel = (t: string): string => (t === 'audio' ? '音乐' : '视频')
           <div v-if="isVideo" class="rounded-sm border border-gray-200 bg-white p-3">
             <video
               ref="videoEl"
-              :src="current.url"
+              :src="playSrc"
               class="w-full rounded-sm bg-black"
               controls
               preload="metadata"
@@ -322,6 +537,7 @@ const typeLabel = (t: string): string => (t === 'audio' ? '音乐' : '视频')
               @play="playing = true"
               @pause="playing = false"
               @ended="onEnded"
+              @stalled="onStalled"
             />
             <div class="mt-3 min-w-0">
               <p class="truncate text-sm font-medium text-gray-900">{{ current.title }}</p>
@@ -352,6 +568,10 @@ const typeLabel = (t: string): string => (t === 'audio' ? '音乐' : '视频')
                 <p class="mt-1 truncate text-sm text-gray-500">{{ current.artist || '未知艺术家' }}</p>
                 <p class="mt-0.5 truncate text-xs text-gray-400">
                   <span v-if="current.album">{{ current.album }} · </span>{{ current.ext.toUpperCase() }} · {{ formatSize(current.size) }}
+                </p>
+                <!-- 补全中提示（服务端文件仍在写入） -->
+                <p v-if="current.partial" class="mt-1 text-[11px] text-amber-600">
+                  源文件仍在补全中：可播放已就绪部分，补全后会自动接着播
                 </p>
 
                 <!-- 进度条 -->
@@ -406,6 +626,17 @@ const typeLabel = (t: string): string => (t === 'audio' ? '音乐' : '视频')
                       </svg>
                     </button>
                   </div>
+
+                  <!-- 缓存状态（分段缓存：完整缓存后本地播放，不受网络与补全影响） -->
+                  <span
+                    v-if="cacheLabel"
+                    class="ml-2 rounded-sm px-1.5 py-0.5 text-[11px]"
+                    :class="cacheInfoOf(current).status === 'cached'
+                      ? 'bg-blue-50 text-blue-600'
+                      : cacheInfoOf(current).status === 'caching'
+                        ? 'bg-gray-100 text-gray-500'
+                        : 'bg-gray-50 text-gray-400'"
+                  >{{ cacheLabel }}</span>
 
                   <!-- 音量 -->
                   <div class="ml-auto flex items-center gap-1.5">
@@ -486,7 +717,7 @@ const typeLabel = (t: string): string => (t === 'audio' ? '音乐' : '视频')
             <!-- 隐藏的音频元素 -->
             <audio
               ref="audioEl"
-              :src="current.url"
+              :src="playSrc"
               preload="metadata"
               class="hidden"
               @timeupdate="onTimeUpdate"
@@ -494,6 +725,7 @@ const typeLabel = (t: string): string => (t === 'audio' ? '音乐' : '视频')
               @play="playing = true"
               @pause="playing = false"
               @ended="onEnded"
+              @stalled="onStalled"
             />
           </div>
         </template>
@@ -541,6 +773,22 @@ const typeLabel = (t: string): string => (t === 'audio' ? '音乐' : '视频')
                   {{ m.artist || typeLabel(m.type) }}<span v-if="m.hasLyrics"> · 词</span><span v-if="m.hasCover"> · 图</span>
                 </span>
               </span>
+              <!-- 分段缓存状态 -->
+              <span
+                v-if="cacheInfoOf(m).status === 'cached'"
+                class="flex-shrink-0 rounded-sm bg-blue-50 px-1 py-0.5 text-[10px] text-blue-600"
+                title="已完整缓存到本地，播放不依赖网络"
+              >缓存</span>
+              <span
+                v-else-if="cacheInfoOf(m).status === 'caching'"
+                class="flex-shrink-0 rounded-sm bg-gray-100 px-1 py-0.5 text-[10px] text-gray-400"
+                title="正在后台分段缓存"
+              >{{ cacheInfoOf(m).total ? Math.min(99, Math.round((cacheInfoOf(m).bytes / cacheInfoOf(m).total) * 100)) + '%' : '…' }}</span>
+              <span
+                v-else-if="m.partial"
+                class="flex-shrink-0 rounded-sm bg-amber-50 px-1 py-0.5 text-[10px] text-amber-600"
+                title="服务器文件仍在补全中"
+              >补全中</span>
             </button>
           </div>
         </div>

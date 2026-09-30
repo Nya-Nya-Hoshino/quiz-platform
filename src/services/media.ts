@@ -16,6 +16,10 @@ export interface MediaItem {
   artist: string
   album: string
   addedAt: number
+  /** 服务端文件是否已停止写入（false = 仍在补全中） */
+  ready: boolean
+  /** 是否仍在补全（ready 取反，便于模板使用） */
+  partial: boolean
   hasCover: boolean
   hasLyrics: boolean
   url: string
