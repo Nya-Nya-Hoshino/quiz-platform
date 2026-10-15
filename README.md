@@ -19,7 +19,8 @@
 | 错题本 | 自动记录错题（题目快照/题型/JLPT等级）、单题回顾练习、**艾宾浩斯五周期回顾（1/2/4/7/15 天）**、**AI 错题总结**（按日期区间生成《知识点记背手册》） |
 | 收藏本 | 题目右上角 ☆ 收藏，勾选任意收藏题目组成一份专属练习 |
 | 笔记 | 做题界面 📝 添加笔记（原词 + 译文必填、备注可选），顶栏「笔记」页以**笔记表 + 自动更新的 Markdown 文档**双视图展示，随账号云端同步 |
-| 题目搜索 | 顶部导航「搜索」：模糊检索题干/选项/提示/解析/译文中的词、字、句（含中日文子序列模糊匹配），结果一键跳转到对应题目练习/考试 |
+| 题目搜索 | 顶部放大镜入口：模糊检索题干/选项/提示/解析/译文中的词、字、句（含中日文子序列模糊匹配），结果一键跳转到对应题目练习/考试 |
+| 移动端适配 | 手机端导航每行四项、共两行；答题操作自动换行，AI/笔记抽屉适应屏幕宽度，笔记表可横向滚动 |
 | 账号系统 | 注册/登录，错题本 + 收藏 + 笔记 + 历史记录 + 做题进度**多设备云端同步**；首次注册自动上传本地缓存 |
 | 历史记录 | 考试/练习完成记录（得分、正确率、耗时） |
 | AI 助手 | 侧边栏：解释题目 / 分析错误 / 总结知识点 / 生成类似题 / 自定义提问；AI 逐题解析（后台预生成） |
@@ -30,78 +31,173 @@
 
 ## 二、快速开始（开发调试）
 
+准备 Git、npm 和 Node.js。当前 Vite 与 Vue 插件要求 Node.js `^20.19.0 || >=22.12.0`，可使用 22.12 或更新版本。
+
 ```bash
-npm install
-npm run dev        # 开发服务器 http://localhost:5173（API 自动代理到 8080）
-npm run build      # 生产构建（vue-tsc 类型检查 + vite build）
-npm run preview    # 预览生产构建
+git clone https://github.com/Nya-Nya-Hoshino/quiz-platform.git
+cd quiz-platform
+npm ci
 ```
 
-> 开发模式下后端 API（注册/登录/同步）通过 Vite 代理转发到 `http://localhost:8080`，
-> 因此调试账号功能前需先启动生产服务器（见下节）。
+在项目根目录打开两个终端：
+
+```bash
+# 终端一：启动账号、同步、媒体等后端 API
+node server.mjs
+```
+
+```bash
+# 终端二：启动前端开发服务器
+npm run dev
+```
+
+浏览器访问终端输出的开发地址，默认是 `http://localhost:5173`。
+`vite.config.ts` 将账号、同步和媒体 API 转发到 `http://localhost:8080`；开发时更改后端端口，也要同步修改这些代理目标。
+AI 配置见第六节。需要从 8080 端口直接访问完整站点时，先按第三节构建。
 
 ---
 
-## 三、部署教程（一键启动）
+## 三、自定义部署
 
-生产环境 = **静态网站 + 后端 API**（同一个 Node 进程 `server.mjs`）+ **cloudflared 公网隧道**。
+完整部署包含 `dist/` 前端构建产物、Node.js 后端和可持久保存的 `data/` 目录。
+`server.mjs` 同时托管网页与 API；公网访问可选 Cloudflare Tunnel，或将自己的 HTTPS 反向代理指向该服务。
+仅托管 `dist/` 时，账号同步、服务器媒体库和服务端 AI 代理需要另行提供后端。
 
-### 3.1 一键启动（推荐）
+以下域名 `study.example.com`、隧道名 `quiz-platform` 和带尖括号的配置值均为示例，请替换为你自己的域名、隧道信息和实际文件路径。
 
-项目根目录提供两个脚本，启动三件事：生产服务器（8080，含后端 API）+ cloudflared 隧道（公网）：
+### 3.1 构建并启动
 
-- **Windows**：双击 `start.bat`
-- **Git Bash / Linux**：`bash start.sh`
-
-脚本会自动检测 8080 端口与 cloudflared 进程是否已在运行（避免重复启动）、自动定位
-cloudflared 可执行文件，启动后验证并输出访问地址：
-
-```
-本机 8080   : 200
-公网 hoshino: 200
-```
-
-停止服务：`taskkill /F /IM node.exe /IM cloudflared.exe`
-
-### 3.2 手动部署
+在克隆后的项目根目录执行：
 
 ```bash
-# 1. 构建生产版本
+npm ci
 npm run build
-
-# 2. 启动生产服务器（静态托管 dist/ + 后端 API + AI 代理）
-node server.mjs            # 监听 :8080
-
-# 3. 启动公网隧道（需已配置 cloudflared 与命名隧道 quiz-tunnel）
-cloudflared tunnel run quiz-tunnel
+node server.mjs
 ```
 
-### 3.3 cloudflared 隧道配置（一次性）
+构建命令包含 TypeScript 检查。启动后访问 `http://localhost:8080`，并保持 Node.js 进程运行。
+首次使用 AI 前，先创建第六节说明的 `.env.local`，再构建并启动。
+
+可用以下命令检查 HTTP 状态；Windows PowerShell 中请使用 `curl.exe`：
 
 ```bash
-# 登录并创建命名隧道（首次）
-cloudflared tunnel login
-cloudflared tunnel create quiz-tunnel
-cloudflared tunnel route dns quiz-tunnel hoshinonyamain.me
-
-# 配置文件 ~/.cloudflared/config.yml（ingress 指向本地 8080）
-#   tunnel: <隧道ID>
-#   credentials-file: C:\Users\<你>\.cloudflared\<隧道ID>.json
-#   ingress:
-#     - hostname: hoshinonyamain.me
-#       service: http://localhost:8080
-#     - hostname: www.hoshinonyamain.me
-#       service: http://localhost:8080
-#     - service: http_status:404
+curl --fail --silent --output /dev/null --write-out '%{http_code}\n' http://localhost:8080/
 ```
 
-### 3.4 环境变量（可选）
+Windows PowerShell 对应命令：
+
+```powershell
+curl.exe --fail --silent --output NUL --write-out "%{http_code}" http://localhost:8080/
+```
+
+返回 `200` 表示首页可访问。前台运行时，在对应终端按 `Ctrl+C` 停止该进程。
+长期部署请按操作系统配置进程服务，将 Node.js 的工作目录设为项目根目录，并安排日志保存和异常重启。
+
+### 3.2 自定义端口
+
+`server.mjs` 从进程环境变量读取 `PORT`，默认值是 `8080`。以下用 `9000` 演示，可改为自己的可用端口。
+
+Linux / macOS / Git Bash：
+
+```bash
+PORT=9000 node server.mjs
+```
+
+Windows PowerShell：
+
+```powershell
+$env:PORT = '9000'
+node server.mjs
+```
+
+Windows 命令提示符（CMD）：
+
+```bat
+set "PORT=9000"
+node server.mjs
+```
+
+访问地址随之变为 `http://localhost:9000`。反向代理、隧道配置和健康检查中的端口也需保持一致。
+项目自己的 `.env.local` 解析器仅向 AI 配置取值；设置后端端口请使用上面的进程环境变量方式。
+
+### 3.3 配置自己的公网域名（Cloudflare Tunnel，可选）
+
+先安装 `cloudflared` 并加入 `PATH`，准备自己的 Cloudflare 账号和已托管在该账号中的域名。
+创建流程与配置字段可参考 [Cloudflare 本地管理隧道文档](https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/do-more-with-tunnels/local-management/create-local-tunnel/)。
+
+```bash
+cloudflared tunnel login
+cloudflared tunnel create quiz-platform
+cloudflared tunnel route dns quiz-platform study.example.com
+```
+
+记录创建命令输出的隧道 UUID 和凭据 JSON 文件路径。在你选择的位置创建 `config.yml`，替换以下占位值：
+
+```yaml
+tunnel: <TUNNEL_UUID>
+credentials-file: '<凭据 JSON 文件的绝对路径>'
+
+ingress:
+  - hostname: study.example.com
+    service: http://localhost:8080
+  - service: http_status:404
+```
+
+保留最后一条兜底规则；增加其他域名时，需同时配置对应的 DNS 路由与 `hostname` 规则。字段说明见 [Cloudflare 配置文件文档](https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/do-more-with-tunnels/local-management/configuration-file/)。
+
+另开终端启动隧道，并使用实际配置路径：
+
+```bash
+cloudflared tunnel --config "<config.yml 的绝对路径>" run quiz-platform
+```
+
+保持 Node.js 服务与隧道同时运行，访问你配置的 HTTPS 域名。
+使用其他反向代理时，将同一域名下的页面和 `/api/` 请求一起转发到 Node.js 服务。
+
+### 3.4 使用仓库中的启动脚本前
+
+`start.bat` 和 `start.sh` 保留了维护者部署环境的配置。使用者需先按自己的环境修改：
+
+| 项目 | 需要调整的内容 |
+| --- | --- |
+| `cloudflared` 路径 | 修改脚本中 `CF` 的路径检测，指向自己的安装位置，或使用 `PATH` 中的可执行文件 |
+| 隧道 | 将 `tunnel run` 后的名字改为自己已创建的隧道；使用自定义配置路径时补充 `--config` 参数 |
+| 公网域名 | 替换脚本中的域名、访问地址和公网验证 URL |
+| 后端端口 | 保持进程的 `PORT`、端口检测、本地验证 URL 与隧道的 `service` 一致 |
+
+`start.bat` 用于 Windows；当前 `start.sh` 含 Windows 的路径与 `tasklist` 检测，适用于 Git Bash。
+原生 Linux / macOS 请使用上面的通用命令或配置系统服务。
+两个脚本均不执行构建，且会跳过检测到的已有服务；更新代码后先构建，再重启对应的服务进程。
+
+### 3.5 配置项与保存位置
 
 | 变量 | 说明 |
 | --- | --- |
-| `PORT` | 生产服务器端口（默认 8080） |
-| `VITE_API_MODE` | `local`（默认）/ `remote` |
-| `VITE_AI_ENDPOINT` / `VITE_AI_API_KEY` / `VITE_AI_MODEL` | AI 配置（见第六节），只存在于 `.env.local`，不进前端 bundle |
+| `PORT` | Node.js 进程环境变量，控制生产服务端口，默认 `8080` |
+| `VITE_API_MODE` | 前端构建配置，默认 `local` 使用内置题库；`remote` 用于自行实现的远程题库 API |
+| `VITE_API_BASE` | 前端题库及 AI 服务使用的 API 基址；默认同源 `/api`，自建远程服务时按实际地址填写 |
+| `VITE_AI_ENDPOINT` | `.env.local` 中的 OpenAI 兼容 Chat Completions 完整端点；开发代理、生产后端和前端构建读取 |
+| `VITE_AI_API_KEY` | `.env.local` 中的服务端代理密钥；当前前端代码不读取这个环境变量 |
+| `VITE_AI_MODEL` | `.env.local` 中的实际模型 ID；生产后端和前端构建读取 |
+
+正常使用内置题库与同源后端时，保留 `VITE_API_MODE`、`VITE_API_BASE` 的默认值即可。
+更改前端构建配置后重新构建；更改服务端 AI 配置后重启 Node.js 服务。
+
+### 3.6 更新、备份与迁移
+
+更新前保存 `data/` 和自己的部署配置，然后在项目根目录执行：
+
+```bash
+git pull --ff-only
+npm ci
+npm run build
+```
+
+重启这个项目的 Node.js 服务；隧道配置发生变化时，也重启对应隧道进程。
+随后检查本地首页、自定义域名，以及登录后的同步功能。
+
+迁移到新机器时，停止写入后复制完整 `data/`，单独迁移 `.env.local` 和隧道配置、凭据，再按本节启动。
+`data/` 需要可写且持久保存；Git 仓库不包含这些运行数据。
 
 ---
 
@@ -112,7 +208,7 @@ quiz-platform/
 ├── server.mjs            # 生产服务器：静态托管 + 后端 API + AI 代理（入口）
 ├── server-account.mjs    # 账号/同步/备份后端（注册、登录、token、数据存取）
 ├── server-media.mjs      # 媒体库后端（列表 / Range 流式播放 / 上传 / 封面上传 / 歌词 / 删除）
-├── start.bat / start.sh  # 一键启动脚本
+├── start.bat / start.sh  # 维护者环境启动脚本，使用前按自己的部署修改
 ├── data/                 # ⚠ 用户数据（账号、同步数据、备份）——已被 .gitignore，严禁入库
 │   ├── users.json        #   用户表（scrypt 加盐密码哈希）
 │   ├── tokens.json       #   会话 token
@@ -189,7 +285,8 @@ type QuestionType =
 ### 5.4 修改导航 / 首页 / 公告
 
 - **顶部导航**：`src/layouts/AppLayout.vue` 中 `navItems` 数组（`{ path, label }`），
-  对应路由在 `src/router/index.ts` 注册
+  对应路由在 `src/router/index.ts` 注册；搜索入口为独立的顶部放大镜链接
+- **站点名 / 页脚链接**：`src/layouts/AppLayout.vue`；网页标题与描述见 `index.html`，路由标题见 `src/router/index.ts`
 - **首页试卷卡片**：自动读取 manifest（练习卷）+ `fetchJLPTExams`（真题），无需改代码
 - **公告栏 / 公告页**：`src/views/Notice.vue`（近期更新列表直接编辑该文件）
 - **悬浮反馈贴纸**：`src/components/SiteSticker.vue`（QQ / 邮箱）
@@ -204,22 +301,26 @@ type QuestionType =
 
 ---
 
-## 六、AI 配置（DeepSeek / OpenAI 兼容）
+## 六、AI 配置（自选 OpenAI 兼容服务）
 
-默认接入 DeepSeek（OpenAI Compatible）。开发模式由 Vite 代理转发，Key 只在
-`.env.local`（已被 gitignore），不进前端 bundle：
+在项目根目录自行创建 `.env.local`，填写服务商提供的完整 Chat Completions 端点、密钥和模型 ID。
+以下值仅为占位示例，需全部替换：
 
 ```bash
 # .env.local
-VITE_AI_ENDPOINT=https://api.deepseek.com/v1/chat/completions
-VITE_AI_API_KEY=sk-xxxx
-VITE_AI_MODEL=deepseek-v4-flash
+VITE_AI_ENDPOINT=https://api.example.com/v1/chat/completions
+VITE_AI_API_KEY=YOUR_API_KEY
+VITE_AI_MODEL=YOUR_MODEL_ID
 ```
 
-生产环境：`server.mjs` 从 `.env.local` 读取，通过 `/api/ai/chat` 代理（Key 不暴露给浏览器）。
+开发模式由 `vite.config.ts` 读取该文件并代理请求；生产模式由 `server.mjs` 从当前工作目录读取，提供 `/api/ai/chat` 代理。
+服务端密钥仅由代理使用；端点和模型会供前端构建读取。`.env.local` 已被 `.gitignore` 排除。
+配置后重新构建前端，并重启开发服务器或生产 Node.js 服务。
 
-也可在「设置」页填写任意 OpenAI 兼容端点，密钥仅存浏览器 localStorage。
-未配置时 AI 助手/错题总结使用本地模拟输出。
+「设置」页可保存浏览器直连所用的端点、模型和密钥（仅存该浏览器的 localStorage），不会修改服务器的配置文件。
+生产端 AI 代理经过账号接口的认证检查，未认证请求返回 `401`；通过认证后，缺少服务端密钥会返回配置错误。
+当前 `src/services/ai.ts` 的同源 AI 请求尚未附带账号的 `Authorization` 请求头，启用生产 AI 前需完成这项认证对接。
+题库、考试和已有解析可继续使用。
 
 ---
 
@@ -256,8 +357,8 @@ VITE_AI_MODEL=deepseek-v4-flash
 | --- | --- |
 | 页面偶发空白 | 已内置多层自动静默刷新兜底（入口级）；仍出现可查看 `sessionStorage.quiz-err-log` |
 | 练习进入弹「继续上次/重头开始」 | 重做系统正常提示；「重头开始」即清除该卷存档 |
-| 公网打不开 | 检查 `cloudflared tunnel run quiz-tunnel` 是否在跑、`curl localhost:8080` 是否 200 |
-| 改完数据不生效 | `npm run build` 重新构建；浏览器强刷（Ctrl+F5） |
+| 公网打不开 | 先检查自己配置端口的本地服务是否返回 200，再检查隧道进程、配置中的域名与 DNS 路由；反向代理部署检查对应的转发目标 |
+| 改完数据不生效 | `npm run build` 重新构建，重启该项目的 Node.js 服务，再刷新浏览器 |
 | 换设备同步 | 新设备打开网站 → 账号中心 → 登录同一账号，自动拉取云端数据 |
 
 ---
