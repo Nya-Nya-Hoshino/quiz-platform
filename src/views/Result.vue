@@ -106,7 +106,7 @@ function fmtDuration(sec: number): string {
 
   <div v-else class="mx-auto max-w-3xl">
     <!-- 成绩总览 -->
-    <div class="rounded-sm border border-gray-200 bg-white p-6">
+    <div class="rounded-sm border border-gray-200 bg-white p-4 sm:p-6">
       <h1 class="text-lg font-semibold text-gray-900">{{ result.examTitle }}</h1>
       <p class="mt-0.5 text-xs text-gray-400">
         {{ result.mode === 'exam' ? '考试结果' : '练习汇总' }}
@@ -157,7 +157,7 @@ function fmtDuration(sec: number): string {
 
     <!-- 题目明细 -->
     <div class="mt-6">
-      <div class="mb-3 flex items-center justify-between">
+      <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
         <h2 class="text-base font-semibold text-gray-900">
           题目解析
           <span class="ml-1 text-sm font-normal text-gray-400">（{{ filteredItems.length }} 题）</span>
@@ -174,7 +174,7 @@ function fmtDuration(sec: number): string {
           :key="item.questionId"
           class="rounded-sm border border-gray-200 bg-white p-5"
         >
-          <div class="mb-3 flex items-center justify-between">
+          <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
             <span class="text-xs text-gray-400">题目 {{ idx + 1 }}</span>
             <span
               class="rounded-sm px-2 py-0.5 text-xs font-medium"

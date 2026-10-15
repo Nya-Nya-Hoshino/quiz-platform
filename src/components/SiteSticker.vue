@@ -21,11 +21,11 @@ async function copyText(text: string) {
 </script>
 
 <template>
-  <div class="fixed bottom-5 right-5 z-50 flex flex-col items-end gap-2">
+  <div class="mx-3 mb-4 flex max-w-full flex-col items-end gap-2 self-end lg:fixed lg:bottom-5 lg:right-5 lg:z-50 lg:m-0">
     <!-- 展开提示 -->
     <div
       v-if="showTip"
-      class="w-64 rounded-lg border border-gray-200 bg-white p-3 text-sm shadow-lg"
+      class="w-64 max-w-full rounded-lg border border-gray-200 bg-white p-3 text-sm shadow-lg"
     >
       <p class="font-medium text-gray-800">错题反馈</p>
       <button
@@ -49,6 +49,7 @@ async function copyText(text: string) {
     <button
       class="flex h-12 w-12 items-center justify-center rounded-full bg-blue-600 text-lg text-white shadow-lg transition-transform hover:scale-105"
       title="错题反馈"
+      :aria-expanded="showTip"
       @click="showTip = !showTip"
     >
       <svg v-if="!showTip" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-6 w-6">

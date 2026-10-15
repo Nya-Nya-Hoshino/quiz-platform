@@ -47,7 +47,7 @@ function startPractice(id: string) {
     <div class="mb-4"><NoticeBar /></div>
 
     <!-- 顶部欢迎区 -->
-    <div class="mb-6 rounded-sm border border-gray-200 bg-white p-6">
+    <div class="mb-6 rounded-sm border border-gray-200 bg-white p-4 sm:p-6">
       <h1 class="text-xl font-semibold text-gray-900">选择试卷开始学习</h1>
       <p class="mt-1 text-sm text-gray-500">
         支持考试模式（限时、交卷后评分）与练习模式（逐题即时判分、查看解析）。
@@ -61,8 +61,8 @@ function startPractice(id: string) {
     </div>
 
     <!-- JLPT 真题入口（主内容） -->
-    <div class="mb-6 rounded-sm border border-gray-200 bg-white p-6">
-      <div class="flex items-center justify-between">
+    <div class="mb-6 rounded-sm border border-gray-200 bg-white p-4 sm:p-6">
+      <div class="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center sm:gap-0">
         <div>
           <h2 class="text-lg font-semibold text-gray-900">JLPT 真题</h2>
           <p class="mt-1 text-sm text-gray-500">
@@ -84,7 +84,7 @@ function startPractice(id: string) {
         :key="exam.id"
         class="rounded-sm border border-gray-200 bg-white p-5 transition-shadow hover:shadow-sm"
       >
-        <div class="flex items-start justify-between gap-4">
+        <div class="flex flex-col items-start justify-between gap-4 sm:flex-row">
           <div class="min-w-0">
             <h4 class="text-base font-medium text-gray-900">{{ exam.title }}</h4>
             <div class="mt-2 flex flex-wrap gap-2">

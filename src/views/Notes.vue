@@ -125,14 +125,14 @@ function doClear(): void {
 <template>
   <div class="mx-auto max-w-4xl">
     <!-- 头部 -->
-    <div class="mb-4 flex items-center justify-between">
+    <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
       <div>
         <h1 class="text-lg font-semibold text-gray-900">笔记</h1>
         <p class="mt-1 text-sm text-gray-400">
           共 {{ notes.total }} 条 · 原词 + 译文必填，备注可选 · 随账号云端同步
         </p>
       </div>
-      <div class="flex items-center gap-2">
+      <div class="flex flex-wrap items-center gap-2">
         <button
           v-if="notes.total"
           type="button"
@@ -174,8 +174,8 @@ function doClear(): void {
         <p class="mt-1 text-xs text-gray-300">做题时点击题目旁的「添加笔记」，或点击上方「＋ 添加笔记」</p>
       </div>
 
-      <div v-else class="overflow-hidden rounded-sm border border-gray-200 bg-white">
-        <table class="w-full text-sm">
+      <div v-else class="overflow-x-auto rounded-sm border border-gray-200 bg-white" role="region" aria-label="笔记表，可横向滚动" tabindex="0">
+        <table class="w-full min-w-[640px] text-sm">
           <thead>
             <tr class="border-b border-gray-200 bg-gray-50 text-left text-xs text-gray-500">
               <th class="px-3 py-2.5 font-medium">#</th>
@@ -217,12 +217,12 @@ function doClear(): void {
 
     <!-- ===== Markdown 文档（自动更新） ===== -->
     <div v-else class="rounded-sm border border-gray-200 bg-white">
-      <div class="flex items-center justify-between border-b border-gray-100 px-4 py-2.5">
+      <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 px-4 py-2.5">
         <p class="text-sm text-gray-600">
           笔记 Markdown 文档
           <span class="ml-1 text-xs text-gray-400">· 每添加/修改一行笔记自动更新</span>
         </p>
-        <div class="flex items-center gap-2">
+        <div class="flex flex-wrap items-center gap-2">
           <label class="flex cursor-pointer items-center gap-1 text-xs text-gray-500">
             <input v-model="showRaw" type="checkbox" class="h-3.5 w-3.5 accent-blue-600" />
             查看源码

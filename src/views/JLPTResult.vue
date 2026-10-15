@@ -156,8 +156,8 @@ function explanationOf(item: { groupId: string; explanation: string }): string {
 
     <div v-else-if="result && exam" class="space-y-5">
       <!-- 成绩总览 -->
-      <div class="rounded-sm border border-gray-200 bg-white p-6">
-        <div class="flex items-center justify-between">
+      <div class="rounded-sm border border-gray-200 bg-white p-4 sm:p-6">
+        <div class="flex flex-wrap items-center justify-between gap-2">
           <div>
             <h1 class="text-lg font-semibold text-gray-900">{{ examTitle }} · JLPT {{ level }}</h1>
             <p class="mt-0.5 text-xs text-gray-400">真题考试结果 · 耗时 {{ fmtDuration(duration) }}</p>
@@ -169,7 +169,7 @@ function explanationOf(item: { groupId: string; explanation: string }): string {
           >返回真题库</button>
         </div>
 
-        <div class="mt-6 grid grid-cols-3 gap-4">
+        <div class="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div class="rounded-sm border border-gray-100 bg-gray-50 p-4 text-center">
             <p class="text-xs text-gray-500">总分</p>
             <p class="mt-1 text-2xl font-bold text-gray-900">
@@ -190,7 +190,7 @@ function explanationOf(item: { groupId: string; explanation: string }): string {
           </div>
         </div>
 
-        <div class="mt-4 flex items-center justify-between rounded-sm bg-gray-50 px-4 py-2 text-sm">
+        <div class="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-sm bg-gray-50 px-4 py-2 text-sm">
           <span class="text-gray-600">
             正确 {{ result.correctCount }}/{{ result.totalCount }} · 正确率 {{ Math.round((result.correctCount / Math.max(result.totalCount, 1)) * 100) }}%
           </span>
@@ -202,7 +202,7 @@ function explanationOf(item: { groupId: string; explanation: string }): string {
 
       <!-- 题目详解 -->
       <div class="rounded-sm border border-gray-200 bg-white p-5">
-        <div class="mb-3 flex items-center justify-between">
+        <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
           <h2 class="text-base font-semibold text-gray-900">
             {{ showAll ? '全部题目' : '错题详解' }}
             <span class="ml-1 text-sm font-normal text-gray-400">（{{ displayedItems.length }} 题）</span>
@@ -219,7 +219,7 @@ function explanationOf(item: { groupId: string; explanation: string }): string {
             :key="item.groupId"
             class="rounded-sm border border-gray-200 p-4"
           >
-            <div class="mb-2 flex items-center justify-between">
+            <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
               <span class="text-xs text-gray-400">{{ item.sectionTitle.slice(0, 30) }}</span>
               <span
                 class="rounded-sm px-2 py-0.5 text-xs font-medium"

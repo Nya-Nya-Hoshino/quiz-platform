@@ -66,7 +66,7 @@ const stats = computed(() => {
         <div
           v-for="e in exams"
           :key="e.examTitle"
-          class="flex items-center justify-between rounded-sm border border-gray-200 bg-white px-4 py-3 transition-shadow hover:shadow-sm"
+          class="flex flex-col items-start justify-between gap-3 rounded-sm sm:flex-row sm:items-center sm:gap-0 border border-gray-200 bg-white px-4 py-3 transition-shadow hover:shadow-sm"
         >
           <div class="min-w-0">
             <h2 class="text-base font-medium text-gray-900">{{ e.examTitle }} JLPT {{ e.level }}</h2>

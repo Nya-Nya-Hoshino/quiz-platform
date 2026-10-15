@@ -226,3 +226,34 @@ body {
 .font-mincho blockquote {
   font-family: "QuizSerif", "Yu Mincho", "SimSun", serif;
 }
+
+/* 手机端仅调整布局和触控尺寸，桌面样式沿用各组件原有设置。 */
+@media (max-width: 1023.98px) {
+  #view-container {
+    overflow-wrap: anywhere;
+  }
+
+  #view-container :where(button, summary),
+  .n-drawer :where(button) {
+    min-height: 44px;
+  }
+
+  .question-card > .flex > button {
+    min-width: 44px;
+  }
+
+  /* 保持输入文字可读，避免 iOS 聚焦小字号输入框时自动放大。 */
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
+  textarea,
+  select {
+    min-height: 44px;
+    max-width: 100%;
+    font-size: 16px;
+  }
+
+  .md-body table {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+  }
+}

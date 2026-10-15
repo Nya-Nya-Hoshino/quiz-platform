@@ -254,7 +254,7 @@ const videoCount = computed(() => items.value.filter((m) => m.type === 'video').
 <template>
   <div class="mx-auto max-w-4xl">
     <!-- 头部 -->
-    <div class="mb-4 flex items-start justify-between gap-3">
+    <div class="mb-4 flex flex-wrap items-start justify-between gap-3">
       <div>
         <h1 class="text-lg font-semibold text-gray-900">上传管理</h1>
         <p class="mt-1 text-xs text-gray-400">
@@ -326,16 +326,16 @@ const videoCount = computed(() => items.value.filter((m) => m.type === 'video').
         <div
           v-for="row in queue"
           :key="row.id"
-          class="flex items-center gap-3 rounded-sm border border-gray-200 px-2.5 py-2"
+          class="flex flex-wrap items-center gap-3 rounded-sm border border-gray-200 px-2.5 py-2"
         >
-          <span class="w-40 flex-shrink-0 truncate text-xs text-gray-500" :title="row.file.name">{{ row.file.name }}</span>
+          <span class="w-full flex-shrink-0 truncate sm:w-40 text-xs text-gray-500" :title="row.file.name">{{ row.file.name }}</span>
           <input
             v-model="row.title"
             type="text"
             class="min-w-0 flex-1 rounded-sm border border-gray-300 px-2 py-1 text-xs outline-none focus:border-blue-500"
             placeholder="标题"
           />
-          <span class="w-28 flex-shrink-0 text-right text-xs text-gray-400">
+          <span class="flex-shrink-0 sm:w-28 text-right text-xs text-gray-400">
             <template v-if="row.status === 'uploading'">{{ row.percent }}%</template>
             <template v-else-if="row.status === 'done'">完成</template>
             <template v-else-if="row.status === 'error'"><span class="text-red-500">失败</span></template>
@@ -361,7 +361,7 @@ const videoCount = computed(() => items.value.filter((m) => m.type === 'video').
 
     <!-- ===== 媒体库管理 ===== -->
     <div class="mt-4 rounded-sm border border-gray-200 bg-white p-4">
-      <div class="mb-3 flex items-center justify-between">
+      <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
         <h2 class="text-sm font-medium text-gray-800">媒体库</h2>
         <button
           type="button"
@@ -407,7 +407,7 @@ const videoCount = computed(() => items.value.filter((m) => m.type === 'video').
 
       <!-- 编辑面板 -->
       <div v-if="selected" class="mt-4 rounded-sm border border-gray-200 bg-gray-50 p-4">
-        <div class="mb-3 flex items-center justify-between">
+        <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
           <p class="text-sm font-medium text-gray-800">编辑：{{ selected.id }}</p>
           <button type="button" class="text-xs text-gray-400 hover:text-gray-600" @click="selected = null">关闭</button>
         </div>

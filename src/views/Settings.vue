@@ -46,7 +46,7 @@ function fillDemo(): void {
       AI API 已配置。
     </n-alert>
 
-    <div class="rounded-sm border border-gray-200 bg-white p-6">
+    <div class="rounded-sm border border-gray-200 bg-white p-4 sm:p-6">
       <div class="space-y-4">
         <div>
           <label class="mb-1 block text-sm font-medium text-gray-700">API Endpoint（OpenAI Compatible）</label>
@@ -79,7 +79,7 @@ function fillDemo(): void {
           />
         </div>
 
-        <div class="flex items-center gap-2 pt-2">
+        <div class="flex flex-wrap items-center gap-2 pt-2">
           <n-button type="primary" @click="save">保存设置</n-button>
           <n-button @click="fillDemo">填充示例端点</n-button>
           <span v-if="saved" class="text-sm text-green-600">✓ 已保存</span>

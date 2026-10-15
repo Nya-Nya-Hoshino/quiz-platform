@@ -136,11 +136,11 @@ function handleFillInput(i: number, e: Event): void {
     </div>
 
     <!-- 题干 -->
-    <div class="mb-1 flex items-start gap-2">
-      <span class="mt-0.5 inline-flex h-5 flex-shrink-0 items-center rounded-sm bg-gray-100 px-1.5 text-xs font-medium text-gray-600">
+    <div class="mb-1 flex flex-wrap items-start gap-2 sm:flex-nowrap">
+      <span class="mt-0.5 mr-auto inline-flex h-5 flex-shrink-0 items-center rounded-sm bg-gray-100 px-1.5 text-xs font-medium text-gray-600 sm:mr-0">
         {{ question.type === 'single_choice' && question.isReadingChild ? '阅读' : question.type === 'single_choice' ? '单选' : question.type === 'multiple_choice' ? '多选' : question.type === 'judge' ? '判断' : question.type === 'fill_blank' ? '填空' : question.type === 'sorting' ? '排序' : '简答' }}
       </span>
-      <h3 class="flex-1 text-base font-medium leading-7 text-gray-900" v-html="questionHtml" />
+      <h3 class="order-last min-w-0 flex-1 basis-full text-base font-medium leading-7 text-gray-900 sm:order-none sm:basis-auto" v-html="questionHtml" />
       <!-- 添加笔记按钮 -->
       <button
         type="button"
@@ -296,7 +296,7 @@ function handleFillInput(i: number, e: Event): void {
         <span class="text-sm text-gray-500">第 {{ i }} 空</span>
         <input
           type="text"
-          class="flex-1 rounded-sm border border-gray-300 px-3 py-1.5 text-sm outline-none focus:border-blue-500"
+          class="min-w-0 flex-1 rounded-sm border border-gray-300 px-3 py-1.5 text-sm outline-none focus:border-blue-500"
           :disabled="readonly"
           :value="fillValue[i - 1] ?? ''"
           placeholder="输入答案"

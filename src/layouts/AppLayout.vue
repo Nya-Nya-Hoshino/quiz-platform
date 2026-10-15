@@ -48,7 +48,6 @@ onBeforeUnmount(() => window.clearInterval(progressTimer))
 
 const navItems = [
   { path: '/', label: '题库' },
-  { path: '/search', label: '搜索' },
   { path: '/jlpt', label: 'JLPT 真题' },
   { path: '/history', label: '历史记录' },
   { path: '/account', label: '账号' },
@@ -74,18 +73,32 @@ const noteCount = computed(() => notes.total)
 
     <!-- 顶部导航 -->
     <header class="sticky top-0 z-40 border-b border-gray-200 bg-white">
-      <div class="mx-auto flex h-14 max-w-5xl items-center justify-between px-4">
-        <router-link to="/" class="flex items-center gap-2">
-          <div class="flex h-7 w-7 items-center justify-center rounded-sm bg-blue-600 text-sm font-bold text-white">Q</div>
-          <span class="text-base font-semibold text-gray-900">刷题平台</span>
-        </router-link>
+      <div class="mx-auto flex max-w-5xl flex-col px-3 sm:px-4 lg:h-14 lg:flex-row lg:items-center lg:justify-between">
+        <div class="flex h-14 items-center justify-between lg:gap-3">
+          <router-link to="/" class="flex h-14 shrink-0 items-center gap-2">
+            <div class="flex h-7 w-7 items-center justify-center rounded-sm bg-blue-600 text-sm font-bold text-white">Q</div>
+            <span class="text-base font-semibold text-gray-900">刷题平台</span>
+          </router-link>
+          <router-link
+            to="/search"
+            aria-label="搜索题目"
+            title="搜索题目"
+            class="flex h-11 w-11 items-center justify-center rounded-sm transition-colors"
+            :class="isActive('/search') ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-100'"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" class="h-5 w-5">
+              <circle cx="10.5" cy="10.5" r="6.5" />
+              <path stroke-linecap="round" d="m16 16 4.5 4.5" />
+            </svg>
+          </router-link>
+        </div>
 
-        <nav class="flex items-center gap-1">
+        <nav aria-label="主导航" class="grid w-full min-w-0 grid-cols-4 items-center gap-1 pb-2 lg:flex lg:w-auto lg:pb-0">
           <router-link
             v-for="item in navItems"
             :key="item.path"
             :to="item.path"
-            class="rounded-sm px-3 py-1.5 text-sm transition-colors"
+            class="relative flex min-h-11 min-w-0 items-center justify-center whitespace-nowrap rounded-sm px-0.5 py-1.5 text-sm transition-colors lg:min-h-0 lg:shrink-0 lg:justify-start lg:px-3"
             :class="isActive(item.path)
               ? 'bg-blue-50 font-medium text-blue-700'
               : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'"
@@ -93,11 +106,11 @@ const noteCount = computed(() => notes.total)
             {{ item.label }}
             <span
               v-if="item.path === '/wrong-book' && wrongCount > 0"
-              class="ml-1 rounded-full bg-red-500 px-1.5 py-0.5 text-xs text-white"
+              class="absolute right-0 top-0 rounded-full bg-red-500 px-1 text-[10px] leading-4 text-white lg:static lg:ml-1 lg:px-1.5 lg:py-0.5 lg:text-xs lg:leading-4"
             >{{ wrongCount }}</span>
             <span
               v-if="item.path === '/notes' && noteCount > 0"
-              class="ml-1 rounded-full bg-blue-500 px-1.5 py-0.5 text-xs text-white"
+              class="absolute right-0 top-0 rounded-full bg-blue-500 px-1 text-[10px] leading-4 text-white lg:static lg:ml-1 lg:px-1.5 lg:py-0.5 lg:text-xs lg:leading-4"
             >{{ noteCount }}</span>
           </router-link>
         </nav>
@@ -105,7 +118,7 @@ const noteCount = computed(() => notes.total)
     </header>
 
     <!-- 内容区 + 侧边栏 -->
-    <div class="mx-auto flex w-full max-w-6xl flex-1 gap-6 px-4 py-6">
+    <div class="mx-auto flex w-full max-w-6xl flex-1 gap-6 px-3 py-4 sm:px-4 sm:py-6">
       <main id="view-container" class="min-w-0 flex-1">
         <router-view v-slot="{ Component }">
           <transition name="page">
@@ -128,7 +141,7 @@ const noteCount = computed(() => notes.total)
     </div>
 
     <!-- 页脚 -->
-    <footer class="border-t border-gray-200 py-4 text-center text-xs text-gray-400">
+    <footer class="border-t border-gray-200 px-3 py-4 text-center text-xs leading-6 text-gray-400 sm:px-0 sm:leading-4">
       <p>刷题平台 · 考试模式 / 练习模式 / 错题本 / AI 辅助学习</p>
       <p class="mt-1">
         <span class="text-amber-500">⚠ 测试阶段个人网站</span>

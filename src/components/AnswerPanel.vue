@@ -48,7 +48,7 @@ const gridItems = computed(() => {
 <template>
   <div class="space-y-4">
     <!-- 导航按钮 -->
-    <div class="flex items-center justify-between gap-3">
+    <div class="flex flex-wrap items-center justify-between gap-2 sm:gap-3">
       <button
         type="button"
         class="rounded-sm border border-gray-300 bg-white px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
@@ -56,7 +56,7 @@ const gridItems = computed(() => {
         @click="emit('prev')"
       >上一题</button>
 
-      <div class="flex items-center gap-2">
+      <div class="order-last flex w-full flex-wrap items-center justify-center gap-2 sm:order-none sm:w-auto">
         <template v-if="mode === 'practice'">
           <button
             type="button"
@@ -88,7 +88,7 @@ const gridItems = computed(() => {
       <summary class="cursor-pointer select-none px-3 py-2 text-sm text-gray-600 hover:bg-gray-50">
         答题卡（{{ answeredSet?.size ?? 0 }}/{{ total }}）
       </summary>
-      <div class="grid grid-cols-10 gap-1.5 border-t border-gray-100 p-3">
+      <div class="grid grid-cols-5 sm:grid-cols-10 gap-1.5 border-t border-gray-100 p-3">
         <button
           v-for="item in gridItems"
           :key="item.index"

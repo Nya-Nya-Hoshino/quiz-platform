@@ -114,15 +114,15 @@ async function startFavoritePractice(): Promise<void> {
 </script>
 
 <template>
-  <div class="mx-auto max-w-3xl px-4 py-6">
-    <div class="mb-4 flex items-center justify-between">
+  <div class="mx-auto max-w-3xl px-0 py-0 sm:px-4 sm:py-6">
+    <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
       <div>
         <h1 class="text-lg font-semibold text-gray-900">收藏本</h1>
         <p class="mt-1 text-sm text-gray-400">
           共 {{ fav.total }} 道收藏 · 勾选后可组成一份练习
         </p>
       </div>
-      <div class="flex items-center gap-2">
+      <div class="flex flex-wrap items-center gap-2">
         <button
           type="button"
           class="rounded-sm border border-gray-300 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50"
@@ -179,7 +179,7 @@ async function startFavoritePractice(): Promise<void> {
         <!-- 主体 -->
         <div class="min-w-0 flex-1 px-4 py-3">
           <p class="truncate text-sm text-gray-800">{{ summary(r.snapshot.question) }}</p>
-          <p class="mt-1 flex items-center gap-1.5 text-xs text-gray-400">
+          <p class="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-gray-400">
             <span class="rounded-sm bg-gray-100 px-1.5 py-0.5 text-gray-600">
               {{ r.snapshot.difficulty || '—' }}
             </span>

@@ -54,7 +54,7 @@ function fmtTime(ts: number): string {
       <div
         v-for="r in records"
         :key="r.id"
-        class="flex items-center justify-between rounded-sm border border-gray-200 bg-white px-4 py-3"
+        class="flex flex-col items-start justify-between gap-3 rounded-sm sm:flex-row sm:items-center sm:gap-0 border border-gray-200 bg-white px-4 py-3"
       >
         <div class="min-w-0">
           <p class="truncate text-sm font-medium text-gray-900">{{ r.examTitle }}</p>
@@ -65,7 +65,7 @@ function fmtTime(ts: number): string {
             </span>
           </p>
         </div>
-        <div class="flex items-center gap-6 text-sm">
+        <div class="flex w-full items-center justify-between gap-3 text-sm sm:w-auto sm:justify-start sm:gap-6">
           <div class="text-right">
             <p class="font-semibold text-gray-900">
               {{ r.earnedScore }}<span class="text-xs text-gray-400">/{{ r.totalScore }}</span>

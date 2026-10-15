@@ -104,9 +104,9 @@ const localStats = computed(() => ({
 </script>
 
 <template>
-  <div class="mx-auto max-w-2xl px-4 py-8">
+  <div class="mx-auto max-w-2xl px-0 py-0 sm:px-4 sm:py-8">
     <!-- ===== 已登录 ===== -->
-    <div v-if="auth.isLoggedIn" class="rounded-sm border border-gray-200 bg-white p-6">
+    <div v-if="auth.isLoggedIn" class="rounded-sm border border-gray-200 bg-white p-4 sm:p-6">
       <h1 class="text-lg font-semibold text-gray-900">账号中心</h1>
       <div
         v-if="auth.tokenInvalid"
@@ -191,7 +191,7 @@ const localStats = computed(() => ({
     </div>
 
     <!-- ===== 未登录：登录 / 注册 ===== -->
-    <div v-else class="rounded-sm border border-gray-200 bg-white p-6">
+    <div v-else class="rounded-sm border border-gray-200 bg-white p-4 sm:p-6">
       <h1 class="text-lg font-semibold text-gray-900">账号登录</h1>
       <p class="mt-1 text-sm text-gray-400">登录后错题本 / 收藏 / 历史记录可在多设备间同步</p>
 

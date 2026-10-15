@@ -89,7 +89,7 @@ function close(): void {
 </script>
 
 <template>
-  <n-drawer :show="show" :width="420" placement="right" @update:show="close">
+  <n-drawer :show="show" width="min(420px, 100vw)" placement="right" @update:show="close">
     <n-drawer-content :title="editing ? '编辑笔记' : '添加笔记'" closable>
       <div class="flex h-full flex-col gap-3">
         <p class="text-xs leading-5 text-gray-400">

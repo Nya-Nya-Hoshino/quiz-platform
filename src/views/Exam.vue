@@ -160,7 +160,7 @@ function submitClicked(): void {
     <!-- 恢复进度提示 -->
     <div
       v-if="restored && !restarting"
-      class="mb-4 flex items-center justify-between rounded-sm border border-amber-200 bg-amber-50 px-4 py-2.5"
+      class="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-sm border border-amber-200 bg-amber-50 px-4 py-2.5"
     >
       <p class="text-sm text-amber-800">
         <b>已恢复上次考试进度</b>
@@ -188,7 +188,7 @@ function submitClicked(): void {
     </div>
 
     <!-- 题目卡片 -->
-    <div class="rounded-sm border border-gray-200 bg-white p-6">
+    <div class="rounded-sm border border-gray-200 bg-white p-4 sm:p-6">
       <QuestionCard
         v-if="currentQuestion"
         :question="currentQuestion"
@@ -241,8 +241,8 @@ function submitClicked(): void {
   />
 
   <!-- 交卷确认 -->
-  <div v-if="showConfirm" class="fixed inset-0 z-50 flex items-center justify-center bg-black/30" @click.self="showConfirm = false">
-    <div class="w-full max-w-sm rounded-sm border border-gray-200 bg-white p-6 shadow-lg">
+  <div v-if="showConfirm" class="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4" @click.self="showConfirm = false">
+    <div class="w-full max-w-sm rounded-sm border border-gray-200 bg-white p-4 sm:p-6 shadow-lg">
       <h3 class="text-base font-semibold text-gray-900">确认交卷？</h3>
       <p class="mt-2 text-sm text-gray-500">
         已作答 {{ examStore.answeredCount }}/{{ examStore.total }} 题，交卷后将无法修改答案。

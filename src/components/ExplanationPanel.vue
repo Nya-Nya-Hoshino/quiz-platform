@@ -68,7 +68,7 @@ const userAnswerText = computed(() => {
   <div v-if="show" class="rounded-sm border border-gray-200 font-mincho">
     <!-- 结果标识 -->
     <div
-      class="flex items-center justify-between border-b border-gray-100 px-4 py-2.5"
+      class="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 px-4 py-2.5"
       :class="isCorrect === true ? 'bg-green-50' : isCorrect === false ? 'bg-red-50' : 'bg-gray-50'"
     >
       <span

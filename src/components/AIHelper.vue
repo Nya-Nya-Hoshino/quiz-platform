@@ -96,7 +96,7 @@ function handleShowChange(v: boolean): void {
 </script>
 
 <template>
-  <n-drawer :show="show" :width="460" placement="right" @update:show="handleShowChange">
+  <n-drawer :show="show" width="min(460px, 100vw)" placement="right" @update:show="handleShowChange">
     <n-drawer-content title="AI 学习助手" closable>
       <div class="flex h-full flex-col">
         <!-- 未配置 API 提示 -->
@@ -126,7 +126,7 @@ function handleShowChange(v: boolean): void {
           <input
             v-model="customText"
             type="text"
-            class="flex-1 rounded-sm border border-gray-300 px-2.5 py-1.5 text-sm outline-none focus:border-blue-500"
+            class="min-w-0 flex-1 rounded-sm border border-gray-300 px-2.5 py-1.5 text-sm outline-none focus:border-blue-500"
             placeholder="向 AI 提问…"
             :disabled="loading"
           />

@@ -187,7 +187,7 @@ function finishPractice(): void {
     <div class="mb-4">
       <h1 class="text-lg font-semibold text-gray-900">{{ practice.exam.title }}</h1>
       <p class="text-xs text-gray-400">练习模式 · 提交后立即判分并显示解析</p>
-      <div class="mt-2 flex items-center gap-4 rounded-sm border border-gray-200 bg-white px-4 py-2 text-sm">
+      <div class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-sm border border-gray-200 bg-white px-4 py-2 text-sm [&>span]:whitespace-nowrap">
         <span class="text-gray-500">积分</span>
         <span class="font-semibold text-blue-600">{{ practice.points }}</span>
         <span class="ml-2 text-gray-500">今日</span>
@@ -244,7 +244,7 @@ function finishPractice(): void {
     </div>
 
     <!-- 题目卡片 -->
-    <div class="rounded-sm border border-gray-200 bg-white p-6">
+    <div class="rounded-sm border border-gray-200 bg-white p-4 sm:p-6">
       <QuestionCard
         v-if="currentQuestion"
         :question="currentQuestion"

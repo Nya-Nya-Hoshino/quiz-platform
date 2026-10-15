@@ -58,8 +58,8 @@ const overTime = computed(() => props.timeLimit !== undefined && elapsed.value >
 
 <template>
   <div class="w-full">
-    <div class="mb-1.5 flex items-center justify-between text-sm">
-      <div class="flex items-center gap-3">
+    <div class="mb-1.5 flex flex-wrap items-center justify-between gap-2 text-sm">
+      <div class="flex flex-wrap items-center gap-2 sm:gap-3">
         <span class="font-medium text-gray-900">第 {{ current + 1 }} 题</span>
         <span class="text-gray-400">/ 共 {{ total }} 题</span>
         <span class="rounded-sm bg-gray-100 px-1.5 py-0.5 text-xs text-gray-600">

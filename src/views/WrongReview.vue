@@ -122,7 +122,7 @@ function openAI(): void {
   <div class="mx-auto max-w-3xl">
     <!-- 顶部：错题回顾进度 -->
     <div v-if="record" class="mb-4 rounded-sm border border-gray-200 bg-white p-4">
-      <div class="flex items-center justify-between">
+      <div class="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 class="text-base font-semibold text-gray-900">错题回顾</h1>
           <p class="mt-0.5 text-xs text-gray-400">
@@ -143,7 +143,7 @@ function openAI(): void {
     </div>
 
     <!-- 题目卡片 -->
-    <div v-if="question" class="rounded-sm border border-gray-200 bg-white p-6">
+    <div v-if="question" class="rounded-sm border border-gray-200 bg-white p-4 sm:p-6">
       <QuestionCard
         :question="question"
         v-model="userAnswer"
@@ -152,7 +152,7 @@ function openAI(): void {
         :is-correct="submitted ? feedback?.isCorrect : undefined"
       />
 
-      <div class="mt-4 flex items-center justify-between">
+      <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
         <div>
           <template v-if="submitted && feedback">
             <span
@@ -170,7 +170,7 @@ function openAI(): void {
           </template>
           <span v-else class="text-xs text-gray-400">作答后提交，答对推进回顾周期</span>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="flex flex-wrap items-center gap-2">
           <button
             type="button"
             class="rounded-sm border border-gray-300 px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-50"

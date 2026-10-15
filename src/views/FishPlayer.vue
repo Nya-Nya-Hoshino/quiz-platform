@@ -584,7 +584,7 @@ const typeLabel = (t: string): string => (t === 'audio' ? '音乐' : '视频')
 <template>
   <div class="mx-auto max-w-5xl">
     <!-- 头部 -->
-    <div class="mb-4 flex items-start justify-between gap-3">
+    <div class="mb-4 flex flex-wrap items-start justify-between gap-3">
       <div>
         <h1 class="text-lg font-semibold text-gray-900">网页媒体播放器</h1>
         <p class="mt-1 text-xs text-gray-400">
@@ -592,7 +592,7 @@ const typeLabel = (t: string): string => (t === 'audio' ? '音乐' : '视频')
           <span class="ml-1 text-gray-300">· 隐藏页，未在导航中公开</span>
         </p>
       </div>
-      <div class="flex flex-shrink-0 items-center gap-2">
+      <div class="flex flex-wrap items-center gap-2">
         <span v-if="cacheStatsInfo.items" class="text-xs text-gray-400">
           本地缓存 {{ cacheStatsInfo.items }} 项 · {{ formatSize(cacheStatsInfo.bytes) }}
         </span>
@@ -662,9 +662,9 @@ const typeLabel = (t: string): string => (t === 'audio' ? '音乐' : '视频')
 
           <!-- 音乐 -->
           <div v-else class="rounded-sm border border-gray-200 bg-white p-4">
-            <div class="flex gap-4">
+            <div class="flex flex-col gap-4 sm:flex-row">
               <!-- 专辑封面 -->
-              <div class="relative h-32 w-32 flex-shrink-0 overflow-hidden rounded-sm border border-gray-200 bg-gray-50">
+              <div class="relative h-32 w-32 self-center flex-shrink-0 sm:self-auto overflow-hidden rounded-sm border border-gray-200 bg-gray-50">
                 <img
                   v-if="coverUrl"
                   :src="coverUrl"
@@ -691,7 +691,7 @@ const typeLabel = (t: string): string => (t === 'audio' ? '音乐' : '视频')
                   <span class="w-9 text-right text-[11px] tabular-nums text-gray-400">{{ formatTime(currentTime) }}</span>
                   <input
                     type="range"
-                    class="h-1 flex-1 cursor-pointer accent-blue-600"
+                    class="h-1 min-w-0 flex-1 cursor-pointer accent-blue-600"
                     min="0"
                     :max="duration || 0"
                     step="0.1"
@@ -702,7 +702,7 @@ const typeLabel = (t: string): string => (t === 'audio' ? '音乐' : '视频')
                 </div>
 
                 <!-- 播放控制 -->
-                <div class="mt-2 flex items-center">
+                <div class="mt-2 flex flex-wrap items-center gap-y-2">
                   <div class="flex items-center gap-1">
                     <button
                       type="button"

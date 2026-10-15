@@ -114,7 +114,7 @@ const typeLabel = (t?: string): string => {
         <input
           v-model="keyword"
           type="text"
-          class="flex-1 rounded-sm border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+          class="min-w-0 flex-1 rounded-sm border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
           placeholder="输入要检索的词或句子，如：並んで / 物価 / に伴って…"
         />
         <button
