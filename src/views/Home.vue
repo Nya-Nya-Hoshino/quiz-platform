@@ -60,6 +60,17 @@ function startPractice(id: string) {
       题库加载失败：{{ error }}
     </div>
 
+    <!-- 个人题库：不增加手机顶部导航的行数。 -->
+    <div class="mb-6 rounded-sm border border-blue-200 bg-white p-4 sm:p-6">
+      <div class="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
+        <div>
+          <h2 class="text-lg font-semibold text-gray-900">个人题库</h2>
+          <p class="mt-1 text-sm text-gray-500">登录后查看站长投递给你的专属练习</p>
+        </div>
+        <router-link to="/personal-bank" class="inline-flex min-h-11 shrink-0 items-center rounded-sm bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700">进入个人题库</router-link>
+      </div>
+    </div>
+
     <!-- JLPT 真题入口（主内容） -->
     <div class="mb-6 rounded-sm border border-gray-200 bg-white p-4 sm:p-6">
       <div class="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center sm:gap-0">

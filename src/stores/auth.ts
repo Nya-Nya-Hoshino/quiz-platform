@@ -167,6 +167,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   const isLoggedIn = computed(() => Boolean(state.value?.token))
   const username = computed(() => state.value?.username ?? '')
+  const token = computed(() => state.value?.token ?? '')
   /** token 是否已被后端判定失效（登录过期） */
   const tokenInvalid = ref(false)
 
@@ -358,6 +359,7 @@ export const useAuthStore = defineStore('auth', () => {
   return {
     isLoggedIn,
     username,
+    token,
     busy,
     lastSyncAt,
     register,

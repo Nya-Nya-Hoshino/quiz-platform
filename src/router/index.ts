@@ -16,6 +16,24 @@ const router = createRouter({
       meta: { title: 'JLPT 真题库' },
     },
     {
+      path: '/personal-bank',
+      name: 'personal-bank',
+      component: () => import('../views/PersonalBank.vue'),
+      meta: { title: '个人题库' },
+    },
+    {
+      path: '/personal-bank/manage',
+      name: 'personal-bank-manage',
+      component: () => import('../views/PersonalBankManage.vue'),
+      meta: { title: '投递个人练习' },
+    },
+    {
+      path: '/personal-bank/:id/practice',
+      name: 'personal-practice',
+      component: () => import('../views/PersonalPractice.vue'),
+      meta: { title: '个人练习' },
+    },
+    {
       path: '/jlpt/exam/:level/:examTitle',
       name: 'jlpt-exam',
       component: () => import('../views/JLPTExam.vue'),

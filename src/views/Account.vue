@@ -137,6 +137,7 @@ const localStats = computed(() => ({
 
       <!-- 操作 -->
       <div class="mt-5 flex flex-wrap gap-2">
+        <router-link to="/personal-bank" class="inline-flex min-h-11 items-center rounded-sm border border-blue-300 px-4 py-2 text-sm text-blue-600 hover:bg-blue-50">个人题库</router-link>
         <button
           type="button"
           class="rounded-sm bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"

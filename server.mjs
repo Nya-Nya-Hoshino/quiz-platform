@@ -6,8 +6,9 @@ import { createServer } from 'node:http'
 import { readFile, stat } from 'node:fs/promises'
 import { join, extname, normalize, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { handleAccountAPI } from './server-account.mjs'
+import { handleAccountAPI, resolveTokenUser } from './server-account.mjs'
 import { handleMediaAPI } from './server-media.mjs'
+import { handlePersonalBankAPI, loadPersonalBankAdmins } from './server-personal-bank.mjs'
 
 const ROOT = fileURLToPath(new URL('./dist/', import.meta.url))
 const PORT = process.env.PORT || 8080
@@ -42,6 +43,7 @@ function loadEnvFile() {
   return env
 }
 const env = loadEnvFile()
+const PERSONAL_BANK_ADMINS = loadPersonalBankAdmins({ value: process.env.PERSONAL_BANK_ADMIN_USERS })
 const AI_ENDPOINT = env.VITE_AI_ENDPOINT || 'https://api.deepseek.com/v1/chat/completions'
 const AI_KEY = env.VITE_AI_API_KEY || ''
 const AI_MODEL = env.VITE_AI_MODEL || 'deepseek-v4-flash'
@@ -96,6 +98,7 @@ const gzipCache = new Map()
 const server = createServer(async (req, res) => {
   try {
     const url = new URL(req.url, 'http://x')
+    if (await handlePersonalBankAPI(req, res, url, resolveTokenUser, undefined, PERSONAL_BANK_ADMINS)) return
     // 媒体库 API（/fishplayer 隐藏页：列表、流式播放、上传管理）
     if (url.pathname.startsWith('/api/media/')) {
       const handled = await handleMediaAPI(req, res, url)

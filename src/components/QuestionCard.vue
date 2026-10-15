@@ -23,6 +23,8 @@ const props = defineProps<{
   isCorrect?: boolean
   /** 阅读子题的文章内容 */
   passage?: string
+  /** 私人练习可关闭会将题目快照写入公共收藏/笔记的工具入口。 */
+  showTools?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -143,6 +145,7 @@ function handleFillInput(i: number, e: Event): void {
       <h3 class="order-last min-w-0 flex-1 basis-full text-base font-medium leading-7 text-gray-900 sm:order-none sm:basis-auto" v-html="questionHtml" />
       <!-- 添加笔记按钮 -->
       <button
+        v-if="showTools !== false"
         type="button"
         class="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md border border-blue-200 bg-blue-50 text-sm leading-none text-blue-600 transition-all hover:bg-blue-100 hover:text-blue-700"
         title="添加笔记（原词 + 译文）"
@@ -150,6 +153,7 @@ function handleFillInput(i: number, e: Event): void {
       >📝</button>
       <!-- 收藏按钮 -->
       <button
+        v-if="showTools !== false"
         type="button"
         class="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md border text-base leading-none transition-all"
         :class="favStore.isFavorite(question.id)
@@ -327,6 +331,7 @@ function handleFillInput(i: number, e: Event): void {
 
     <!-- 笔记编辑器（侧边抽屉） -->
     <NoteEditor
+      v-if="showTools !== false"
       v-model:show="noteShow"
       :suggested-word="noteSuggested"
       :source="{ questionId: question.id, questionSnippet: questionSnippet(question) }"
