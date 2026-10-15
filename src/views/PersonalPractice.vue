@@ -144,7 +144,7 @@ onBeforeUnmount(() => controller?.abort())
       </div>
       <template v-else-if="current">
         <div ref="questionArea" class="scroll-mt-44 rounded-sm border border-gray-200 bg-white p-4 sm:p-6 lg:scroll-mt-20">
-          <QuestionCard :question="current" v-model="answer" :passage="passage" :readonly="currentSubmitted" :show-tools="false" />
+          <QuestionCard :question="current" v-model="answer" :passage="passage" :readonly="currentSubmitted" :is-correct="currentSubmitted ? isCorrect(current, answer as never) : undefined" :show-tools="false" />
         </div>
         <ExplanationPanel class="mt-4" :question="current" :user-answer="answer" :show="currentSubmitted" :is-correct="currentSubmitted ? isCorrect(current, answer as never) : undefined" />
         <div class="mt-4 rounded-sm border border-gray-200 bg-white p-4">

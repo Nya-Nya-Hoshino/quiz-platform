@@ -1,13 +1,48 @@
 import { test, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { createServer } from 'vite'
+import vuePlugin from '@vitejs/plugin-vue'
+import { readFileSync } from 'node:fs'
+import { parse } from '@vue/compiler-sfc'
+import { compile } from '@vue/compiler-dom'
+import ts from 'typescript'
+import * as Vue from 'vue'
+import { renderToString } from '@vue/server-renderer'
+import { createPinia } from 'pinia'
 
-const compiler = await createServer({ configFile: false, server: { middlewareMode: true }, logLevel: 'silent' })
+const compiler = await createServer({ configFile: false, plugins: [vuePlugin()], server: { middlewareMode: true }, logLevel: 'silent' })
 const { loadPersonalProgress, savePersonalProgress } = await compiler.ssrLoadModule('/src/utils/personalProgress.ts')
 const { parsePersonalExam } = await compiler.ssrLoadModule('/src/utils/personalExam.ts')
-const { isCorrect } = await compiler.ssrLoadModule('/src/utils/judge.ts')
+const { isCorrect, isAnswered } = await compiler.ssrLoadModule('/src/utils/judge.ts')
 const { findQuestion, buildQuestionRefs } = await compiler.ssrLoadModule('/src/utils/parser.ts')
 after(() => compiler.close())
+
+test('个人练习选项与解析的正确性反馈一致：答对绿色，答错选项红色', async () => {
+  const source = readFileSync(new URL('../src/views/PersonalPractice.vue', import.meta.url), 'utf8')
+  const template = parse(source).descriptor.template.content
+  const code = compile(template, { mode: 'function', prefixIdentifiers: true, expressionPlugins: ['typescript'], isTS: true }).code
+  const render = new Function('Vue', ts.transpile(code, { target: ts.ScriptTarget.ES2020 }))(Vue)
+  const QuestionCard = (await compiler.ssrLoadModule('/src/components/QuestionCard.vue')).default
+  const ExplanationPanel = (await compiler.ssrLoadModule('/src/components/ExplanationPanel.vue')).default
+  const question = { id: 'feedback-1', type: 'single_choice', question: '选择甲', options: ['甲', '乙'], answer: 0, score: 2 }
+  for (const answer of [0, 1]) {
+    const app = Vue.createSSRApp({ render, setup: () => ({
+      auth: { isLoggedIn: true }, needsLogin: false, loading: false, error: '',
+      exam: { title: '反馈验证', totalScore: 2 }, owner: 'test', refs: [{ id: question.id }],
+      currentIndex: 0, submitted: new Set([question.id]), completed: false, current: question,
+      answer, passage: undefined, currentSubmitted: true, answeredSet: new Set([0]), isCorrect, isAnswered,
+      jump() {}, submit() {}, finish() {},
+    }) })
+    app.use(createPinia())
+    app.component('QuestionCard', QuestionCard)
+    app.component('ExplanationPanel', ExplanationPanel)
+    for (const name of ['RouterLink', 'ExamProgress', 'AnswerPanel']) app.component(name, { render: () => null })
+    const html = await renderToString(app)
+    assert.ok(html.includes('border-green-500 bg-green-50 text-green-700'))
+    assert.equal(html.includes('border-red-400 bg-red-50 text-red-600'), answer === 1)
+    assert.ok(html.includes(answer === 0 ? '回答正确' : '回答错误'))
+  }
+})
 
 test('私人题干保留下划线，其他 HTML 与实体按文本显示', () => {
   const exam = parsePersonalExam({ testId: 'personal:markup', title: '导入校验', questions: [
